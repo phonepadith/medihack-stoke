@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ເຄື່ອງຕິດຕາມສັນຍານຊີບ — rPPG</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  /* ══ tokens ══════════════════════════════════════════════════════════
+     Green and white, as briefed. The greens are pushed deeper and the
+     "white" carries a faint green cast, so the palette reads as one family
+     rather than a neutral page with a green accent bolted on. Amber is
+     rationed: it appears only on things that are not validated. */
+  :root{
+    --paper:#FBFCFA;      /* ground, faintly green-shifted white   */
+    --card:#FFFFFF;
+    --ink:#0B1F15;        /* deep green-black; not a neutral grey  */
+    --ink-2:#43604F;
+    --ink-3:#7B9486;
+    --vital:#0A6B3D;      /* clinical green, primary               */
+    --trace:#14A862;      /* brighter: live signal only            */
+    --caution:#8A5A00;    /* unvalidated things, nothing else      */
+    --caution-bg:#FFFAED;
+    --caution-line:#EBD79C;
+    --alert:#A32020;
+    --rule:#D3E0D8;
+    --rule-2:#E8F0EB;
+    --wash:#F1F7F3;
+
+    --lao:'Noto Sans Lao','Phetsarath OT',ui-sans-serif,system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+
+  /* Lao stacks vowels above and tone marks below the base consonant; at a
+     Latin-default leading those marks collide with the line above. */
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:15px/1.75 var(--lao);-webkit-font-smoothing:antialiased}
+
+  /* every numeral, unit, timestamp and identifier */
+  .m{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+  :focus-visible{outline:2.5px solid var(--vital);outline-offset:2px;border-radius:4px}
+
+  /* ══ masthead ═══════════════════════════════════════════════════════ */
+  .top{display:flex;align-items:center;gap:14px;padding:15px 28px;
+    background:var(--card);border-bottom:1px solid var(--rule)}
+  .mark{width:38px;height:38px;flex:0 0 auto;background:var(--vital);
+    border-radius:10px;display:grid;place-items:center}
+  .top h1{font-size:17px;margin:0;font-weight:700;line-height:1.5;letter-spacing:-.1px}
+  .top .sub{color:var(--ink-3);font-size:11.5px;font-family:var(--mono);
+    letter-spacing:.3px;line-height:1.5}
+  .grow{flex:1}
+  .state{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);
+    font-family:var(--mono);border:1px solid var(--rule);padding:6px 13px;border-radius:999px}
+  .led{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:0 0 auto}
+  .led.ok{background:var(--trace)} .led.err{background:var(--alert)}
+
+  /* ══ disclosure ═════════════════════════════════════════════════════ */
+  .notice{padding:13px 28px;background:var(--caution-bg);
+    border-bottom:1px solid var(--caution-line);color:var(--caution);font-size:13px}
+  .notice .lead{display:flex;gap:10px;align-items:flex-start}
+  .notice b{color:#654109}
+  .notice .cite{display:block;margin-top:8px;padding-top:8px;
+    border-top:1px solid rgba(138,90,0,.22);font-size:12px;line-height:1.75}
+  .notice a{color:#6B4E0C;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+  .notice a:hover{color:#8A6410}
+  .notice .scope{color:#94793A}
+
+  /* ══ shell ══════════════════════════════════════════════════════════ */
+  .shell{max-width:1420px;margin:0 auto;padding:22px 28px 56px}
+  .cols{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
+  @media(max-width:1000px){.cols{grid-template-columns:1fr}}
+
+  .box{background:var(--card);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+  .box > h2{margin:0;padding:12px 18px;font-size:11px;font-weight:700;
+    font-family:var(--mono);letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--ink-3);border-bottom:1px solid var(--rule-2)}
+  .box .in{padding:18px}
+
+  label{display:block;font-size:12px;color:var(--ink-2);margin-bottom:6px;font-weight:600}
+  input[type=text],input[type=number],select{width:100%;padding:10px 12px;background:var(--card);
+    border:1px solid var(--rule);border-radius:9px;color:var(--ink);font-size:14.5px;
+    font-family:var(--lao)}
+  input[type=text],input[type=number]{font-family:var(--mono)}
+  input:focus,select:focus{outline:none;border-color:var(--vital);
+    box-shadow:0 0 0 3px var(--wash)}
+  .pair{display:flex;gap:12px}.pair>*{flex:1}
+  .f{margin-bottom:15px}
+
+  .drop{border:1.5px dashed var(--rule);border-radius:11px;padding:20px 14px;
+    text-align:center;cursor:pointer;transition:.15s;background:var(--wash)}
+  .drop:hover,.drop.over{border-color:var(--vital);background:#E9F4ED}
+  .drop .a{font-size:13.5px;font-weight:500;margin-bottom:3px}
+  .drop .b{font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
+
+  .or{display:flex;align-items:center;gap:11px;color:var(--ink-3);
+    font-size:11px;margin:16px 0;font-family:var(--mono);letter-spacing:1px;
+    text-transform:uppercase}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--rule-2)}
+
+  button{width:100%;padding:12px;border:0;border-radius:9px;font-size:14.5px;
+    font-weight:600;cursor:pointer;transition:.15s;font-family:var(--lao)}
+  .go{background:var(--vital);color:#fff}
+  .go:hover:not(:disabled){background:#085730}
+  .alt{background:var(--card);color:var(--vital);border:1px solid var(--rule)}
+  .alt:hover:not(:disabled){border-color:var(--vital);background:var(--wash)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+
+  .hint{font-size:12px;color:var(--ink-3);margin:10px 0 0;line-height:1.75}
+
+  details.cal{border:1px solid var(--rule);border-radius:11px;margin-top:16px;overflow:hidden}
+  details.cal summary{padding:11px 14px;cursor:pointer;font-size:13px;font-weight:600;
+    color:var(--ink-2);list-style:none;display:flex;align-items:center;gap:9px}
+  details.cal summary::-webkit-details-marker{display:none}
+  details.cal summary::before{content:"+";font-family:var(--mono);color:var(--ink-3);flex:0 0 auto}
+  details.cal[open] summary::before{content:"−"}
+  details.cal .in2{padding:14px;border-top:1px solid var(--rule-2);background:var(--wash)}
+  details.cal .note{font-size:12.5px;color:var(--ink-2);margin:0 0 13px;line-height:1.8}
+  .tag{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:600;
+    padding:2px 9px;border-radius:999px;background:var(--vital);color:#fff;flex:0 0 auto}
+  .tag.off{background:var(--rule);color:var(--ink-3)}
+
+  /* ══ SIGNATURE: the signal strip ════════════════════════════════════
+     rPPG is light reflected off skin, turned into a line. That line is the
+     truest image of what this product does, so it is the page's spine: full
+     width, with the heart rate set inside it rather than in a tile beside
+     it. The trace's own weight and dash carry the confidence, so the
+     structure reports signal quality instead of decorating it. */
+  .strip{position:relative;background:var(--ink);border-radius:14px;overflow:hidden;
+    border:1px solid var(--ink)}
+  .strip svg{display:block;width:100%;height:196px}
+  .strip .grid line{stroke:rgba(255,255,255,.07);stroke-width:1}
+  .strip .base{stroke:rgba(255,255,255,.16);stroke-width:1;stroke-dasharray:2 5}
+  .strip .wave{fill:none;stroke:var(--trace);stroke-width:2.1;stroke-linejoin:round;
+    stroke-linecap:round;vector-effect:non-scaling-stroke;
+    filter:drop-shadow(0 0 7px rgba(20,168,98,.45))}
+  .strip.weak .wave{stroke-width:1.4;stroke-dasharray:5 4;opacity:.72;filter:none}
+
+  .strip .plate{position:absolute;top:0;left:0;height:100%;padding:20px 26px;
+    display:flex;flex-direction:column;justify-content:center;
+    background:linear-gradient(90deg,rgba(11,31,21,.94) 58%,rgba(11,31,21,0));
+    min-width:270px}
+  .strip .k{font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;
+    text-transform:uppercase;color:rgba(255,255,255,.5)}
+  .strip .lao-k{font-size:12.5px;color:rgba(255,255,255,.82);font-weight:600;margin-top:1px}
+  .strip .v{font-family:var(--mono);font-size:62px;font-weight:600;color:#fff;
+    line-height:1;letter-spacing:-2.5px;margin:7px 0 4px}
+  .strip .v .u{font-size:15px;font-weight:400;color:rgba(255,255,255,.62);
+    letter-spacing:0;margin-left:8px}
+  .strip .q{font-family:var(--mono);font-size:11.5px;color:rgba(255,255,255,.52)}
+
+  /* one orchestrated moment: the trace writes itself in, like a chart
+     recorder laying down a strip */
+  @media (prefers-reduced-motion: no-preference){
+    .strip .wave.draw{animation:write .95s cubic-bezier(.4,0,.2,1) forwards}
+    .strip.weak .wave.draw{animation:none;stroke-dasharray:5 4;stroke-dashoffset:0}
+  }
+  @keyframes write{to{stroke-dashoffset:0}}
+  .strip.weak .wave{stroke-dasharray:5 4 !important;stroke-dashoffset:0 !important}
+
+  /* ══ tiers ══════════════════════════════════════════════════════════
+     The single most important fact about this product is which numbers are
+     measured and which are guessed. That was previously a small badge; here
+     it is the structure. Two labelled bands, different weights. */
+  .tier{margin-top:20px}
+  .tier > .cap{display:flex;align-items:baseline;gap:11px;margin:0 2px 10px}
+  .tier .cap .n{font-family:var(--mono);font-size:10.5px;letter-spacing:1.3px;
+    text-transform:uppercase;color:var(--ink-3)}
+  .tier .cap .d{font-size:12.5px;color:var(--ink-3)}
+  .tier .cap .line{flex:1;height:1px;background:var(--rule)}
+
+  .cells{display:grid;grid-template-columns:repeat(auto-fit,minmax(216px,1fr));gap:14px}
+
+  .cell{background:var(--card);border:1px solid var(--rule);border-radius:13px;
+    padding:15px 17px;position:relative}
+  .cell .k{font-family:var(--mono);font-size:10px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--ink-3)}
+  .cell .lao-k{font-size:13px;font-weight:600;color:var(--ink-2);line-height:1.6;
+    margin-bottom:5px;padding-right:64px}
+  .cell .v{font-family:var(--mono);font-size:40px;font-weight:600;line-height:1.1;
+    letter-spacing:-1.8px;color:var(--vital)}
+  .cell .v .u{font-size:13px;font-weight:400;color:var(--ink-3);letter-spacing:0;margin-left:6px}
+  .cell .q{font-size:11.5px;color:var(--ink-3);min-height:17px;margin-top:4px;line-height:1.6}
+
+  /* Estimated tier reads quieter and sits on a tinted ground, so the eye
+     lands on the measured numbers first. */
+  .tier.est .cell{background:var(--caution-bg);border-color:var(--caution-line)}
+  .tier.est .cell .v{color:var(--caution);font-size:34px}
+  .tier.est .cell .q{color:#94793A}
+  .tier.est .cap .n,.tier.est .cap .d{color:var(--caution)}
+  .tier.est .cap .line{background:var(--caution-line)}
+
+  .chip{position:absolute;top:13px;right:14px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.6px;text-transform:uppercase;padding:3px 7px;border-radius:5px;
+    font-weight:600;line-height:1.5}
+  .chip.warn{background:#fff;color:var(--caution);border:1px solid var(--caution-line)}
+  .chip.good{background:var(--wash);color:var(--vital);border:1px solid #B4D8C4}
+  .chip.bad{background:#FDF0F0;color:var(--alert);border:1px solid #EDBDBD}
+
+  /* respiration trace, secondary to the pulse spine */
+  .resp{margin-top:20px;background:var(--card);border:1px solid var(--rule);
+    border-radius:13px;padding:14px 17px}
+  .resp .cap{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:9px}
+  .resp .cap .r{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .resp svg{display:block;width:100%;height:74px}
+  .resp .base{stroke:var(--rule);stroke-width:1;stroke-dasharray:2 5}
+  .resp .wave{fill:none;stroke:#A16207;stroke-width:1.8;stroke-linejoin:round;
+    vector-effect:non-scaling-stroke}
+
+  .facts{display:flex;flex-wrap:wrap;gap:9px 22px;margin-top:18px;padding:13px 17px;
+    background:var(--card);border:1px solid var(--rule);border-radius:13px;
+    font-size:12px;color:var(--ink-3)}
+  .facts .k{font-family:var(--mono);font-size:10px;letter-spacing:.9px;text-transform:uppercase}
+  .facts b{color:var(--ink);font-family:var(--mono);font-weight:600}
+
+  .foot{margin-top:16px;padding:14px 17px;background:var(--caution-bg);
+    border:1px solid var(--caution-line);border-radius:13px;
+    font-size:12.5px;color:var(--caution);line-height:1.85}
+  .foot b{color:#654109}
+
+  /* Stroke risk: clinician-entered, not measured and not estimated from the
+     video, so it gets its own band rather than joining either tier. */
+  .risk{margin-top:20px;background:var(--card);border:1px solid var(--rule);
+    border-radius:13px;overflow:hidden}
+  .risk .hd{display:flex;align-items:baseline;gap:11px;padding:13px 17px;
+    border-bottom:1px solid var(--rule-2);background:var(--wash)}
+  .risk .hd .n{font-family:var(--mono);font-size:10.5px;letter-spacing:1.3px;
+    text-transform:uppercase;color:var(--ink-3)}
+  .risk .hd .d{font-size:12.5px;color:var(--ink-3)}
+  .risk .bd{padding:17px;display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:start}
+  @media(max-width:720px){.risk .bd{grid-template-columns:1fr}}
+  .risk .num{text-align:center;min-width:150px}
+  .risk .num .big{font-family:var(--mono);font-size:46px;font-weight:600;
+    line-height:1.05;letter-spacing:-2px;color:var(--vital)}
+  .risk .num .big .u{font-size:15px;font-weight:400;color:var(--ink-3);letter-spacing:0}
+  .risk .num .sc{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:5px}
+  .risk .num .bd2{display:inline-block;margin-top:8px;font-size:11.5px;font-weight:700;
+    padding:3px 11px;border-radius:999px}
+  .risk .num .bd2.low{background:var(--wash);color:var(--vital);border:1px solid #B4D8C4}
+  .risk .num .bd2.intermediate{background:var(--caution-bg);color:var(--caution);
+    border:1px solid var(--caution-line)}
+  .risk .num .bd2.high{background:#FDF0F0;color:var(--alert);border:1px solid #EDBDBD}
+  .risk .num.none .big{font-size:30px;color:var(--ink-3)}
+
+  .risk .why .lbl{font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:7px}
+  .risk .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .risk .f{font-size:12px;padding:4px 10px;border-radius:999px;
+    background:var(--wash);border:1px solid var(--rule);color:var(--ink-2)}
+  .risk .f.mod{background:var(--caution-bg);border-color:var(--caution-line);color:var(--caution)}
+  .risk .f .p{font-family:var(--mono);font-weight:700;margin-left:5px}
+  .risk .prose{font-size:13px;color:var(--ink-2);line-height:1.9;
+    padding:13px 15px;background:var(--wash);border:1px solid var(--rule);border-radius:10px}
+  .risk .prose .by{display:block;margin-top:8px;font-family:var(--mono);font-size:10.5px;
+    color:var(--ink-3)}
+  .risk .warn{font-size:12.5px;color:var(--caution);background:var(--caution-bg);
+    border:1px solid var(--caution-line);border-radius:10px;padding:12px 15px;line-height:1.85}
+  .risk .src{padding:11px 17px;border-top:1px solid var(--rule-2);
+    font-size:11.5px;color:var(--ink-3);line-height:1.8}
+
+  .checks{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;margin:4px 0 13px}
+  @media(max-width:420px){.checks{grid-template-columns:1fr}}
+  .checks label{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;
+    font-weight:400;color:var(--ink-2);margin:0;cursor:pointer;line-height:1.55}
+  .checks input{width:15px;height:15px;margin:3px 0 0;accent-color:var(--vital);flex:0 0 auto}
+
+  .void{padding:64px 22px;text-align:center;color:var(--ink-3)}
+  .void .t{font-weight:600;color:var(--ink-2);margin-top:12px}
+  .void .s{font-size:12.5px;margin-top:5px}
+
+  .msg{margin-bottom:18px;padding:12px 16px;border-radius:11px;font-size:13.5px;
+    display:none;line-height:1.8}
+  .msg.show{display:block}
+  .msg.error{background:#FDF0F0;border:1px solid #EDBDBD;color:var(--alert)}
+  .msg.info{background:var(--wash);border:1px solid #B4D8C4;color:var(--vital)}
+
+  .bar{height:2px;background:var(--rule-2);overflow:hidden;display:none;border-radius:2px;
+    margin-bottom:18px}
+  .bar.on{display:block}
+  .bar i{display:block;height:100%;width:34%;background:var(--vital);
+    animation:sweep 1.1s infinite ease-in-out}
+  @keyframes sweep{0%{margin-left:-34%}100%{margin-left:100%}}
+
+  /* ══ fullscreen capture ═════════════════════════════════════════════
+     A fixed overlay in its own right, not only via the Fullscreen API:
+     iOS Safari refuses requestFullscreen on arbitrary elements. */
+  .fs{position:fixed;inset:0;z-index:100;background:#061009;display:none;
+    flex-direction:column;align-items:center;justify-content:center}
+  .fs.on{display:flex}
+  .fs video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    transform:scaleX(-1)}
+  .fs .veil{position:absolute;inset:0;
+    background:radial-gradient(ellipse 34% 44% at 50% 41%,
+      rgba(0,0,0,0) 58%, rgba(6,16,9,.68) 100%)}
+  .fs .oval{position:absolute;top:41%;left:50%;transform:translate(-50%,-50%);
+    width:min(52vw,300px);height:min(66vw,378px);border:2px dashed rgba(255,255,255,.45);
+    border-radius:50%;transition:.3s}
+  .fs.live .oval{border-color:var(--trace);border-style:solid;
+    box-shadow:0 0 0 9999px rgba(6,16,9,.3)}
+
+  .fs .hdr{position:absolute;top:0;left:0;right:0;padding:22px 26px;
+    display:flex;align-items:center;gap:12px;color:#fff;
+    background:linear-gradient(rgba(6,16,9,.8),transparent)}
+  .fs .hdr .who{font-size:15px;font-weight:600}
+  .fs .hdr .tip{font-size:12.5px;color:rgba(255,255,255,.66)}
+
+  .fs .btm{position:absolute;bottom:0;left:0;right:0;padding:26px;
+    display:flex;flex-direction:column;align-items:center;gap:17px;
+    background:linear-gradient(transparent,rgba(6,16,9,.88))}
+  .fs .fsmsg{color:#fff;font-size:16px;font-weight:600;text-align:center;
+    text-shadow:0 1px 7px rgba(0,0,0,.65);line-height:1.7}
+  .fs .stop{width:auto;padding:11px 28px;background:rgba(255,255,255,.13);
+    color:#fff;border:1px solid rgba(255,255,255,.32)}
+  .fs .stop:hover{background:rgba(255,255,255,.23)}
+
+  .dial{position:relative;width:136px;height:136px}
+  .dial svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .dial .bg{fill:none;stroke:rgba(255,255,255,.18);stroke-width:6}
+  .dial .fg{fill:none;stroke:var(--trace);stroke-width:6;stroke-linecap:round;
+    transition:stroke-dashoffset .1s linear}
+  .dial .ctr{position:absolute;inset:0;display:grid;place-items:center;
+    color:#fff;text-align:center;line-height:1.15}
+  .dial .ctr .n{font-family:var(--mono);font-size:42px;font-weight:600;letter-spacing:-2px}
+  .dial .ctr .s{font-size:12px;font-weight:600;color:rgba(255,255,255,.7)}
+  .fs.ready .dial .fg{stroke:#E0A82E}
+  .fs.ready .dial .ctr .n{font-size:64px}
+
+  @media(max-width:640px){
+    .top,.notice{padding-left:18px;padding-right:18px}
+    .shell{padding:18px 18px 44px}
+    .strip svg{height:168px}
+    .strip .plate{position:static;background:none;min-width:0;padding:16px 18px 0}
+    .strip{background:var(--ink);display:block}
+    .strip .v{font-size:50px}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="mark">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+  </span>
+  <div>
+    <h1>ເຄື່ອງຕິດຕາມສັນຍານຊີບ</h1>
+    <div class="sub">rPPG · MTTS-CAN</div>
+  </div>
+  <div class="grow"></div>
+  <div class="state"><span class="led" id="dot"></span><span id="statusText">ກຳລັງເຊື່ອມຕໍ່…</span></div>
+</header>
+
+<div class="notice">
+  <div class="lead">
+    <span aria-hidden="true">⚠</span>
+    <div><b>ຕົວຢ່າງເພື່ອການຄົ້ນຄວ້າ — ບໍ່ແມ່ນອຸປະກອນທາງການແພດ.</b>
+    ຄ່າເຫຼົ່ານີ້ມາຈາກແບບຈຳລອງທາງວິຊາການທີ່ຍັງບໍ່ໄດ້ຮັບການກວດສອບ ແລະ
+    ຫ້າມນຳໃຊ້ເພື່ອການວິນິດໄສ, ການຄັດກອງ ຫຼື ການຕັດສິນໃຈທາງຄລີນິກໃດໆ.
+    <span class="cite">
+      ແບບຈຳລອງທີ່ໃຊ້ວັດ <b>ອັດຕາການເຕັ້ນຫົວໃຈ</b> ແລະ <b>ອັດຕາການຫາຍໃຈ</b> (MTTS-CAN) ອ້າງອີງຈາກ:
+      <a href="https://papers.nips.cc/paper/2020/file/e1228be46de6a0234ac22ded31417bc7-Paper.pdf"
+         target="_blank" rel="noopener noreferrer">Liu, Fromm, Patel &amp; McDuff,
+         “Multi-Task Temporal Shift Attention Networks for On-Device Contactless
+         Vitals Measurement”, NeurIPS 2020 ↗</a><br>
+      <span class="scope">ໝາຍເຫດ: ເອກະສານສະບັບນີ້ຄອບຄຸມສະເພາະອັດຕາການເຕັ້ນຫົວໃຈ ແລະ
+      ອັດຕາການຫາຍໃຈເທົ່ານັ້ນ — ບໍ່ໄດ້ຄອບຄຸມການປະເມີນ SpO&#8322; ແລະ ຄວາມດັນເລືອດ
+      ຂອງລະບົບນີ້, ເຊິ່ງບໍ່ໄດ້ຮັບການກວດສອບຈາກເອກະສານວິຊາການໃດໆ.</span>
+    </span></div>
+  </div>
+</div>
+<div class="shell">
+<div class="cols">
+
+  <!-- ─────────── ການບັນທຶກ ─────────── -->
+  <section class="box">
+    <h2>ການບັນທຶກ / CAPTURE</h2>
+    <div class="in">
+      <div class="pair">
+        <div class="f"><label for="pid">ລະຫັດຄົນເຈັບ</label>
+          <input type="text" id="pid" placeholder="PT-00421" autocomplete="off"></div>
+        <div class="f"><label for="dur">ຄວາມຍາວຄລິບ</label>
+          <select id="dur">
+            <option value="10">10 ວິນາທີ</option>
+            <option value="15" selected>15 ວິນາທີ</option>
+            <option value="20">20 ວິນາທີ</option>
+            <option value="30">30 ວິນາທີ</option>
+          </select></div>
+      </div>
+
+      <button class="go" id="camBtn">ເປີດກ້ອງ ແລະ ບັນທຶກ</button>
+      <p class="hint">ກ້ອງຈະເປີດແບບເຕັມຈໍ, ນັບຖອຍຫຼັງ 3 ວິນາທີ ແລ້ວບັນທຶກຕາມຄວາມຍາວທີ່ເລືອກ.
+        ເມື່ອຄົບເວລາ ກ້ອງຈະປິດເອງ ແລະ ເລີ່ມວິເຄາະທັນທີ.</p>
+
+      <div class="or">ຫຼື</div>
+
+      <div class="f" style="margin-bottom:0">
+        <label>ອັບໂຫຼດຄລິບທີ່ບັນທຶກໄວ້</label>
+        <div class="drop" id="drop" tabindex="0" role="button">
+          <div class="a">ວາງໄຟລ໌ວິດີໂອທີ່ນີ້ ຫຼື <span style="color:var(--vital)">ເລືອກໄຟລ໌</span></div>
+          <div class="b">MP4 · WebM · MOV · AVI — 10–30s</div>
+        </div>
+        <input type="file" id="file" accept="video/*" hidden>
+      </div>
+
+      <details class="cal" id="calBox">
+        <summary>ການປັບທຽບຄວາມດັນເລືອດ <span class="tag off" id="calPill">ປິດ</span></summary>
+        <div class="in2">
+          <p class="note">ປ້ອນຄ່າຄວາມດັນເລືອດອ້າງອີງທີ່ວັດດ້ວຍເຄື່ອງວັດແບບປອກແຂນ 1 ຄັ້ງ
+          ສຳລັບຄົນເຈັບຜູ້ນີ້. ລະບົບຈະຍຶດຄ່າປະເມີນໄວ້ກັບຄ່ານັ້ນ, ດັ່ງນັ້ນສິ່ງທີ່ລາຍງານແມ່ນ
+          <b>ການປ່ຽນແປງທຽບກັບຄ່າອ້າງອີງ</b> ບໍ່ແມ່ນຄ່າສະເລ່ຍຂອງປະຊາກອນ.</p>
+          <div class="pair">
+            <div class="f" style="margin-bottom:11px"><label for="calSys">ຄ່າເທິງ</label>
+              <input type="number" id="calSys" placeholder="120" min="70" max="250"></div>
+            <div class="f" style="margin-bottom:11px"><label for="calDia">ຄ່າລຸ່ມ</label>
+              <input type="number" id="calDia" placeholder="80" min="40" max="150"></div>
+            <div class="f" style="margin-bottom:11px"><label for="calHr">ຫົວໃຈເຕັ້ນ</label>
+              <input type="number" id="calHr" placeholder="70" min="30" max="200"></div>
+          </div>
+          <button class="alt" id="calClear" style="padding:8px;font-size:13px">ລຶບການປັບທຽບ</button>
+        </div>
+      </details>
+
+      <details class="cal" id="riskBox">
+        <summary>ການປະເມີນຄວາມສ່ຽງເປັນອຳມະພາດ <span class="tag off" id="riskPill">ປິດ</span></summary>
+        <div class="in2">
+          <p class="note">ຂໍ້ມູນເຫຼົ່ານີ້ຕ້ອງປ້ອນໂດຍແພດ — ບໍ່ສາມາດວັດຈາກວິດີໂອໄດ້.
+          ຄະແນນຄຳນວນດ້ວຍສູດ <b>CHA₂DS₂-VASc</b> ທີ່ຜ່ານການກວດສອບ, ບໍ່ແມ່ນ AI ເປັນຜູ້ຄິດໄລ່.</p>
+          <div class="pair">
+            <div class="f" style="margin-bottom:11px"><label for="rAge">ອາຍຸ</label>
+              <input type="number" id="rAge" placeholder="65" min="1" max="120"></div>
+            <div class="f" style="margin-bottom:11px"><label for="rSex">ເພດ</label>
+              <select id="rSex"><option value="m">ຊາຍ</option><option value="f">ຍິງ</option></select></div>
+          </div>
+          <div class="checks">
+            <label><input type="checkbox" id="rAf"><span>ຫົວໃຈເຕັ້ນຜິດຈັງຫວະ (AF)</span></label>
+            <label><input type="checkbox" id="rHtn"><span>ຄວາມດັນເລືອດສູງ</span></label>
+            <label><input type="checkbox" id="rDm"><span>ພະຍາດເບົາຫວານ</span></label>
+            <label><input type="checkbox" id="rChf"><span>ຫົວໃຈວາຍ</span></label>
+            <label><input type="checkbox" id="rVasc"><span>ພະຍາດຫຼອດເລືອດ</span></label>
+            <label><input type="checkbox" id="rPrior"><span>ເຄີຍເປັນອຳມະພາດ/TIA</span></label>
+            <label><input type="checkbox" id="rSmoke"><span>ສູບຢາ</span></label>
+            <label><input type="checkbox" id="rExplain" checked><span>ໃຫ້ AI ອະທິບາຍ</span></label>
+          </div>
+          <button class="go" id="riskBtn" style="padding:9px;font-size:13.5px">ຄຳນວນຄວາມສ່ຽງ</button>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ─────────── ຜົນການວັດ ─────────── -->
+  <section>
+    <div class="bar" id="bar"><i></i></div>
+    <div class="msg" id="msg"></div>
+
+    <div id="empty" class="box void">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <div class="t">ຍັງບໍ່ມີຜົນການວັດ</div>
+      <div class="s">ອັບໂຫຼດຄລິບ ຫຼື ບັນທຶກຈາກກ້ອງ ເພື່ອເລີ່ມຕົ້ນ.</div>
+    </div>
+
+    <div id="results" hidden>
+
+      <!-- SIGNATURE: pulse trace as the page's spine, HR set inside it -->
+      <div class="strip" id="strip">
+        <svg id="pulseSvg" viewBox="0 0 1000 196" preserveAspectRatio="none"
+             aria-label="ຮູບຄື້ນຊີພະຈອນ"></svg>
+        <div class="plate">
+          <div class="k">Pulse · rPPG</div>
+          <div class="lao-k">ອັດຕາການເຕັ້ນຫົວໃຈ</div>
+          <div class="v"><span id="hrVal">--</span><span class="u">ຄັ້ງ/ນາທີ</span></div>
+          <div class="q" id="hrFoot"></div>
+        </div>
+      </div>
+
+      <!-- measured -->
+      <div class="tier">
+        <div class="cap"><span class="n">Measured</span>
+          <span class="d">ວັດໄດ້ຈາກແບບຈຳລອງທີ່ຜ່ານການເຜີຍແຜ່</span><span class="line"></span></div>
+        <div class="cells">
+          <div class="cell">
+            <div class="lao-k">ອັດຕາການຫາຍໃຈ</div>
+            <div class="v"><span id="rrVal">--</span><span class="u">ຄັ້ງ/ນາທີ</span></div>
+            <div class="q" id="rrFoot"></div>
+            <span class="chip bad" id="rrBadge" hidden>ເຊື່ອຖືຕ່ຳ</span>
+          </div>
+          <div class="cell">
+            <div class="lao-k">ຄຸນນະພາບສັນຍານຊີພະຈອນ</div>
+            <div class="v"><span id="hrQualVal">--</span><span class="u">%</span></div>
+            <div class="q">ອັດຕາສ່ວນພະລັງງານທີ່ຢູ່ຈຸດສູງສຸດ</div>
+            <span class="chip bad" id="hrBadge" hidden>ເຊື່ອຖືຕ່ຳ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- estimated -->
+      <div class="tier est">
+        <div class="cap"><span class="n">Estimated</span>
+          <span class="d">ປະເມີນ — ບໍ່ໄດ້ຮັບການກວດສອບ</span><span class="line"></span></div>
+        <div class="cells">
+          <div class="cell">
+            <div class="lao-k">ອົກຊີເຈນໃນເລືອດ (SpO&#8322;)</div>
+            <div class="v"><span id="spVal">--</span><span class="u">%</span></div>
+            <div class="q" id="spFoot"></div>
+            <span class="chip warn">ທົດລອງ</span>
+          </div>
+          <div class="cell">
+            <div class="lao-k">ຄວາມດັນເລືອດ</div>
+            <div class="v"><span id="bpVal">--</span><span class="u">mmHg</span></div>
+            <div class="q" id="bpFoot"></div>
+            <span class="chip warn" id="bpBadge">ທົດລອງ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="resp">
+        <div class="cap"><span>ຮູບຄື້ນການຫາຍໃຈ</span><span class="r" id="rrLbl"></span></div>
+        <svg id="respSvg" viewBox="0 0 1000 74" preserveAspectRatio="none"
+             aria-label="ຮູບຄື້ນການຫາຍໃຈ"></svg>
+      </div>
+
+      <div class="facts">
+        <span><span class="k">ຄົນເຈັບ</span> <b id="mPid">—</b></span>
+        <span><span class="k">ແຫຼ່ງຂໍ້ມູນ</span> <b id="mSrc">—</b></span>
+        <span><span class="k">ໄລຍະເວລາ</span> <b id="mDur">—</b></span>
+        <span><span class="k">ເຟຣມ</span> <b id="mFrames">—</b></span>
+        <span><span class="k">ອັດຕາເຟຣມ</span> <b id="mFps">—</b></span>
+        <span><span class="k">ວິເຄາະເມື່ອ</span> <b id="mTime">—</b></span>
+      </div>
+
+      <div class="foot" id="bpNote"></div>
+
+      <div class="risk" id="riskCard" hidden>
+        <div class="hd"><span class="n">Stroke risk</span>
+          <span class="d">ຄວາມສ່ຽງເປັນອຳມະພາດ — CHA₂DS₂-VASc</span></div>
+        <div class="bd">
+          <div class="num" id="riskNum"></div>
+          <div class="why">
+            <div class="lbl">ປັດໄຈທີ່ພົບ</div>
+            <div class="chips" id="riskChips"></div>
+            <div id="riskProse"></div>
+          </div>
+        </div>
+        <div class="src" id="riskSrc"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<!-- ─────────── ໜ້າຈໍບັນທຶກແບບເຕັມຈໍ ─────────── -->
+<div class="fs" id="fs">
+  <video id="preview" playsinline muted autoplay></video>
+  <div class="veil"></div>
+  <div class="oval"></div>
+
+  <div class="hdr">
+    <span class="led" style="background:#E05252;width:9px;height:9px" id="fsDot"></span>
+    <div>
+      <div class="who" id="fsWho">ກຳລັງກຽມກ້ອງ…</div>
+      <div class="tip">ຈັດໜ້າໃຫ້ຢູ່ໃນວົງມົນ &middot; ຫຼີກລ້ຽງແສງຍ້ອນຫຼັງ</div>
+    </div>
+  </div>
+
+  <div class="btm">
+    <div class="dial" id="fsRing">
+      <svg viewBox="0 0 120 120">
+        <circle class="bg" cx="60" cy="60" r="54"></circle>
+        <circle class="fg" cx="60" cy="60" r="54" id="fsArc"
+                stroke-dasharray="339.29" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="ctr"><div><div class="n" id="fsNum">3</div>
+        <div class="s" id="fsUnit">ວິນາທີ</div></div></div>
+    </div>
+    <div class="fsmsg" id="fsSay">ຢູ່ນິ້ງໆ ແລະ ຫັນໜ້າໃສ່ກ້ອງ</div>
+    <button class="stop" id="fsCancel">ຍົກເລີກ</button>
+  </div>
+</div>
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+/* ── ແປຂໍ້ຄວາມຜິດພາດຈາກເຊີບເວີ ────────────────────────────────
+   The API replies in English; map the known messages to Lao so the whole
+   interface stays in one language, and fall back to the raw text otherwise. */
+const ERRORS = [
+  [/no face detected/i,              'ບໍ່ພົບໃບໜ້າໃນວິດີໂອ'],
+  [/only (\d+) usable frames/i,      'ເຟຣມທີ່ເຫັນໜ້າມີພຽງ $1 ເຟຣມ — ຕ້ອງການຢ່າງໜ້ອຍ 30 ເຟຣມ'],
+  [/no video file in request/i,      'ບໍ່ມີໄຟລ໌ວິດີໂອໃນຄຳຮ້ອງຂໍ'],
+  [/unsupported file type (.+)/i,    'ບໍ່ຮອງຮັບໄຟລ໌ຊະນິດ $1'],
+  [/file exceeds (\d+) MB/i,         'ໄຟລ໌ໃຫຍ່ເກີນ $1 MB'],
+  [/could not open video/i,          'ເປີດວິດີໂອບໍ່ໄດ້ (ຮູບແບບ ຫຼື ຕົວເຂົ້າລະຫັດບໍ່ຮອງຮັບ)'],
+  [/clip too short/i,                'ຄລິບສັ້ນເກີນໄປ'],
+  [/could not resolve beats \(found (\d+)\)/i,
+                                     'ແຍກຈັງຫວະການເຕັ້ນບໍ່ໄດ້ (ພົບ $1 ຄັ້ງ)'],
+  [/beat intervals too irregular.*?(\d+)%/i,
+                                     'ຈັງຫວະການເຕັ້ນບໍ່ສະໝ່ຳສະເໝີເກີນໄປ (ກະຈາຍ $1%) — ອາດເປັນສັນຍານລົບກວນ ຫຼື ການເຄື່ອນໄຫວ'],
+  [/no usable heart rate/i,          'ບໍ່ມີຄ່າອັດຕາການເຕັ້ນຫົວໃຈທີ່ໃຊ້ໄດ້'],
+  [/pulse signal too weak for blood pressure \(confidence (\d+)%, need (\d+)%\)/i,
+                                     'ສັນຍານຊີພະຈອນອ່ອນເກີນໄປສຳລັບການວັດຄວາມດັນເລືອດ (ຄວາມເຊື່ອຖື $1%, ຕ້ອງການ $2%)'],
+  [/no usable pulse in this clip \(beats found (\d+)\)/i,
+                                     'ບໍ່ພົບຊີພະຈອນທີ່ໃຊ້ໄດ້ໃນຄລິບນີ້ (ພົບການເຕັ້ນ $1 ຄັ້ງ)'],
+  [/calibration values outside a plausible range/i,
+                                     'ຄ່າປັບທຽບຢູ່ນອກຂອບເຂດທີ່ເປັນໄປໄດ້'],
+  [/calibration values must be numeric/i, 'ຄ່າປັບທຽບຕ້ອງເປັນຕົວເລກ'],
+  [/inference failed/i,              'ການປະມວນຜົນລົ້ມເຫລວ'],
+];
+function tr(msg){
+  if (!msg) return 'ເກີດຂໍ້ຜິດພາດທີ່ບໍ່ຮູ້ສາເຫດ';
+  for (const [re, lo] of ERRORS) {
+    const m = msg.match(re);
+    if (m) return lo.replace(/\$(\d)/g, (_, i) => m[i] || '');
+  }
+  return msg;
+}
+
+/* ── ສະຖານະບໍລິການ ──────────────────────────────────────────── */
+fetch('/api/health').then(r => r.json()).then(d => {
+  $('dot').className = 'dot ok';
+  $('statusText').textContent = d.ffmpeg ? 'ບໍລິການພ້ອມໃຊ້ງານ' : 'ພ້ອມໃຊ້ງານ (ບໍ່ມີ ffmpeg)';
+  fetch('/api/warmup', {method:'POST'});
+}).catch(() => {
+  $('dot').className = 'dot err';
+  $('statusText').textContent = 'ຕິດຕໍ່ບໍລິການບໍ່ໄດ້';
+});
+
+/* ── ການປັບທຽບ ──────────────────────────────────────────────── */
+function calValues(){
+  const s = parseFloat($('calSys').value), d = parseFloat($('calDia').value);
+  return (s && d) ? {s, d, hr: parseFloat($('calHr').value) || 70} : null;
+}
+function syncCalPill(){
+  const c = calValues();
+  $('calPill').textContent = c ? c.s + '/' + c.d : 'ປິດ';
+  $('calPill').className = c ? 'pill' : 'pill off';
+}
+['calSys','calDia','calHr'].forEach(id => $(id).oninput = syncCalPill);
+$('calClear').onclick = () => {
+  ['calSys','calDia','calHr'].forEach(id => $(id).value = '');
+  /* ── ຄວາມສ່ຽງເປັນອຳມະພາດ ─────────────────────────────────────────────
+   The score is computed server-side by a validated instrument. The model, if
+   asked, only puts that result into words -- it never supplies the number, and
+   the server rejects its text outright if it invents a percentage. */
+const BAND_LAO = {low:'ຄວາມສ່ຽງຕ່ຳ', intermediate:'ຄວາມສ່ຽງປານກາງ',
+                  moderate:'ຄວາມສ່ຽງປານກາງ', high:'ຄວາມສ່ຽງສູງ'};
+// Vitals from the most recent measurement, sent along so the narrative covers
+// the whole picture and not just the entered risk factors.
+let lastVitals = null;
+
+function syncRiskPill(){
+  const age = $('rAge').value.trim();
+  $('riskPill').textContent = age ? (age + ' ປີ' + ($('rAf').checked ? ' · AF' : '')) : 'ປິດ';
+  $('riskPill').className = age ? 'tag' : 'tag off';
+}
+['rAge','rAf','rSex'].forEach(id => { $(id).oninput = syncRiskPill; $(id).onchange = syncRiskPill; });
+
+$('riskBtn').onclick = async () => {
+  const age = parseFloat($('rAge').value);
+  if (!age) { say('ກະລຸນາປ້ອນອາຍຸກ່ອນ', 'error'); return; }
+
+  const fd = new FormData();
+  fd.append('age', age);
+  if ($('rSex').value === 'f') fd.append('female', '1');
+  [['rAf','atrial_fibrillation'],['rHtn','hypertension'],['rDm','diabetes'],
+   ['rChf','chf'],['rVasc','vascular'],['rPrior','prior_stroke'],
+   ['rSmoke','smoking'],['rExplain','explain']]
+    .forEach(([el, field]) => { if ($(el).checked) fd.append(field, '1'); });
+  if (lastVitals) {
+    Object.entries(lastVitals).forEach(([k, v]) => {
+      if (v !== null && v !== undefined) fd.append(k, v);
+    });
+  }
+
+  $('riskBtn').disabled = true;
+  $('riskBtn').textContent = 'ກຳລັງຄຳນວນ…';
+  try {
+    const res = await fetch('/api/stroke-risk', {method:'POST', body:fd});
+    const d = await res.json();
+    if (!res.ok) throw new Error(tr(d.error));
+    renderRisk(d);
+    $('empty').hidden = true;
+    $('results').hidden = false;
+    clearMsg();
+    $('riskCard').scrollIntoView({behavior:'smooth', block:'nearest'});
+  } catch (err) {
+    say(err.message, 'error');
+  } finally {
+    $('riskBtn').disabled = false;
+    $('riskBtn').textContent = 'ຄຳນວນຄວາມສ່ຽງ';
+  }
+};
+
+function renderRisk(d){
+  $('riskCard').hidden = false;
+
+  // Out of scope means no percentage is shown at all. CHA2DS2-VASc was derived
+  // in atrial fibrillation; applying it to anyone else would be a number
+  // without a population behind it.
+  const overall = d.overall_band || 'moderate';
+  const hasPct = d.annual_risk_percent !== null && d.annual_risk_percent !== undefined;
+  $('riskNum').className = 'num' + (hasPct ? '' : ' none');
+  $('riskNum').innerHTML =
+    (hasPct
+      ? '<div class="big">' + d.annual_risk_percent + '<span class="u">% ຕໍ່ປີ</span></div>'
+      : '<div class="big">' + (BAND_LAO[overall] || overall) + '</div>') +
+    '<div class="sc">ພົບປັດໄຈສ່ຽງ ' + d.burden_count + '/' + d.burden_total + '</div>' +
+    '<div class="bd2 ' + overall + '">' + (BAND_LAO[overall] || overall) + '</div>' +
+    (hasPct ? '<div class="sc" style="margin-top:6px">CHA₂DS₂-VASc ' +
+       d.score + '/' + d.max_score + '</div>' : '');
+
+  $('riskChips').innerHTML = (d.breakdown || []).length
+    ? d.breakdown.map(c => '<span class="f' + (c.modifiable ? ' mod' : '') + '">' +
+        c.label + (c.points ? '<span class="p">+' + c.points + '</span>' : '') + '</span>').join('')
+    : '<span class="f">ບໍ່ພົບປັດໄຈສ່ຽງ</span>';
+
+  let prose = '';
+  if (!hasPct) {
+    prose += '<div class="warn">ນີ້ແມ່ນ<b>ການປະເມີນລວມ</b>ຈາກຈຳນວນປັດໄຈສ່ຽງທີ່ພົບ ' +
+      '— ບໍ່ແມ່ນຄ່າຄວາມນ່າຈະເປັນ. ' + (d.reason || '') + '.</div>';
+  }
+  if (d.rate_uncertain) {
+    prose += '<div class="warn" style="margin-top:10px">ໝາຍເຫດ: ຄ່າຂອງຄະແນນນີ້ໃນເອກະສານຕົ້ນສະບັບ' +
+      'ມາຈາກກຸ່ມຕົວຢ່າງຂະໜາດນ້ອຍ ແລະ ບໍ່ເພີ່ມຂຶ້ນຕາມລຳດັບ — ໃຫ້ຕີຄວາມດ້ວຍຄວາມລະມັດລະວັງ.</div>';
+  }
+  if (d.explanation) {
+    prose += '<div class="prose" style="margin-top:10px">' +
+      d.explanation.text.replace(/[<>]/g, '') +
+      '<span class="by">ຄຳອະທິບາຍສ້າງໂດຍ ' + d.explanation.model +
+      (d.explanation.fallback_used ? ' (ໃຊ້ຕົວສຳຮອງ)' : '') +
+      ' — ຕົວເລກທັງໝົດມາຈາກສູດ CHA₂DS₂-VASc, ບໍ່ແມ່ນຈາກ AI</span></div>';
+  } else if (d.explanation_error) {
+    prose += '<div class="warn" style="margin-top:10px">ບໍ່ສາມາດສ້າງຄຳອະທິບາຍໄດ້: ' +
+      d.explanation_error.replace(/[<>]/g, '') +
+      '. ຄະແນນ ແລະ ເປີເຊັນຂ້າງເທິງບໍ່ໄດ້ຮັບຜົນກະທົບ.</div>';
+  }
+  $('riskProse').innerHTML = prose;
+
+  $('riskSrc').innerHTML = hasPct
+    ? 'ເປີເຊັນຄຳນວນດ້ວຍ CHA₂DS₂-VASc (ໃຊ້ໄດ້ກັບຄົນເຈັບທີ່ມີ AF) — ອັດຕາຕໍ່ປີອ້າງອີງຈາກ ' +
+      (d.source || '') + '. ບໍ່ແມ່ນການວິນິດໄສ — ໃຫ້ປຶກສາແພດສະເໝີ.'
+    : 'ການປະເມີນລວມແມ່ນນັບຈາກປັດໄຈສ່ຽງທີ່ຮັບຮູ້ທົ່ວໄປ (ຄວາມດັນສູງ, ເບົາຫວານ, ສູບຢາ, AF, ' +
+      'ເຄີຍເປັນອຳມະພາດ, ພະຍາດຫຼອດເລືອດ, ຫົວໃຈວາຍ, ອາຍຸ ≥65) — ເປັນຂໍ້ມູນປະກອບ, ' +
+      'ບໍ່ແມ່ນຄ່າຄວາມນ່າຈະເປັນ ແລະ ບໍ່ແມ່ນການວິນິດໄສ. ໃຫ້ປຶກສາແພດສະເໝີ.';
+}
+
+syncCalPill();
+syncRiskPill();
+};
+
+/* ── ຂໍ້ຄວາມ / ສະຖານະກຳລັງທຳງານ ─────────────────────────────── */
+function say(text, kind){
+  const m = $('msg');
+  m.textContent = text; m.className = 'msg show ' + (kind || 'info');
+}
+function clearMsg(){ $('msg').className = 'msg'; }
+function busy(on){
+  $('bar').className = on ? 'bar on' : 'bar';
+  $('camBtn').disabled = on;
+  $('drop').style.pointerEvents = on ? 'none' : '';
+  $('drop').style.opacity = on ? .5 : 1;
+}
+
+/* ── ອັບໂຫຼດໄຟລ໌ ────────────────────────────────────────────── */
+const drop = $('drop'), fileInput = $('file');
+drop.onclick = () => fileInput.click();
+drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } };
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => {
+  e.preventDefault(); drop.classList.remove('over');
+  if (e.dataTransfer.files[0]) send(e.dataTransfer.files[0], e.dataTransfer.files[0].name);
+};
+fileInput.onchange = () => { if (fileInput.files[0]) send(fileInput.files[0], fileInput.files[0].name); };
+
+/* ── ກ້ອງ: ເປີດເຕັມຈໍ → ນັບຖອຍຫຼັງ → ບັນທຶກ → ປິດເອງ → ວິເຄາະ ──────────
+   State machine: idle -> prep -> recording -> finishing. Every exit path
+   (finish, cancel, Esc, error) funnels through closeCapture() so the camera
+   light never stays on. */
+const PREP_SECONDS = 3;
+const ARC = 339.29;                  // 2*pi*r for the countdown ring
+let capture = null;                  // active capture, or null when idle
+
+function setArc(fraction){
+  $('fsArc').setAttribute('stroke-dashoffset', (ARC * (1 - fraction)).toFixed(1));
+}
+
+async function closeCapture({analyze = null} = {}){
+  if (capture && capture.timer) clearInterval(capture.timer);
+  if (capture && capture.stream) capture.stream.getTracks().forEach(t => t.stop());
+  capture = null;
+
+  $('preview').srcObject = null;
+  $('fs').classList.remove('on', 'live', 'ready');
+  document.body.style.overflow = '';
+  if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (e) {} }
+
+  $('camBtn').disabled = false;
+  $('camBtn').textContent = 'ເປີດກ້ອງ ແລະ ບັນທຶກ';
+  if (analyze) send(analyze.blob, analyze.name);
+}
+
+$('fsCancel').onclick = () => { if (capture) capture.cancelled = true;
+                                if (capture && capture.recorder && capture.recorder.state === 'recording')
+                                  capture.recorder.stop();
+                                else closeCapture(); };
+
+// Leaving native fullscreen (Esc, or the browser's own control) cancels the
+// capture rather than leaving a recording running behind the page.
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && capture && !capture.finishing) {
+    capture.cancelled = true;
+    if (capture.recorder && capture.recorder.state === 'recording') capture.recorder.stop();
+    else closeCapture();
+  }
+});
+
+$('camBtn').onclick = async () => {
+  if (capture) return;
+  const seconds = parseInt($('dur').value, 10);
+  $('camBtn').disabled = true;
+  $('camBtn').textContent = 'ກຳລັງເປີດກ້ອງ…';
+  clearMsg();
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30},
+              facingMode:'user'}, audio:false
+    });
+  } catch (err) {
+    $('camBtn').disabled = false;
+    $('camBtn').textContent = 'ເປີດກ້ອງ ແລະ ບັນທຶກ';
+    say('ໃຊ້ກ້ອງບໍ່ໄດ້: ' + err.message +
+        (location.protocol === 'http:' && location.hostname !== 'localhost'
+          ? ' — ບຣາວເຊີອະນຸຍາດໃຫ້ໃຊ້ກ້ອງສະເພາະຜ່ານ HTTPS ຫຼື ທີ່ localhost ເທົ່ານັ້ນ.' : ''), 'error');
+    return;
+  }
+
+  capture = {stream, seconds, recorder:null, timer:null, cancelled:false, finishing:false};
+
+  $('fs').classList.add('on', 'ready');
+  document.body.style.overflow = 'hidden';
+  $('preview').srcObject = stream;
+  try { await $('preview').play(); } catch (e) {}
+
+  // Native fullscreen on top of the overlay; if the browser refuses (iOS
+  // Safari), the fixed overlay already covers the viewport.
+  try { await $('fs').requestFullscreen({navigationUI:'hide'}); } catch (e) {}
+
+  const pid = $('pid').value.trim();
+  $('fsWho').textContent = pid ? 'ຄົນເຈັບ ' + pid : 'ກຽມບັນທຶກ';
+  runPrep();
+};
+
+/* ໄລຍະກຽມ: gives the sensor time to settle. The first seconds after a camera
+   starts are auto-exposure and white-balance adjusting, and that drift lands
+   straight in the rPPG signal, so they are deliberately not recorded. */
+function runPrep(){
+  const cap = capture;
+  $('fsUnit').textContent = 'ກຽມພ້ອມ';
+  $('fsSay').textContent = 'ຢູ່ນິ້ງໆ, ຫັນໜ້າໃສ່ກ້ອງ, ຫາຍໃຈຕາມປົກກະຕິ';
+  const t0 = Date.now();
+
+  cap.timer = setInterval(() => {
+    if (!capture || cap.cancelled) return;
+    const left = PREP_SECONDS - (Date.now() - t0) / 1000;
+    $('fsNum').textContent = Math.max(1, Math.ceil(left));
+    setArc(Math.max(0, left / PREP_SECONDS));
+    if (left <= 0) { clearInterval(cap.timer); cap.timer = null; startRecording(); }
+  }, 80);
+}
+
+function startRecording(){
+  const cap = capture;
+  if (!cap || cap.cancelled) return;
+
+  const type = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4']
+    .find(t => MediaRecorder.isTypeSupported(t)) || '';
+  const chunks = [];
+  cap.recorder = new MediaRecorder(cap.stream, type ? {mimeType:type} : undefined);
+  cap.recorder.ondataavailable = e => e.data.size && chunks.push(e.data);
+  cap.recorder.onstop = () => {
+    if (cap.cancelled) { closeCapture(); say('ຍົກເລີກການບັນທຶກແລ້ວ', 'info'); return; }
+    const name = 'camera-capture' + (type.includes('mp4') ? '.mp4' : '.webm');
+    closeCapture({analyze: {blob: new Blob(chunks, {type: type || 'video/webm'}), name}});
+  };
+
+  $('fs').classList.remove('ready');
+  $('fs').classList.add('live');
+  $('fsUnit').textContent = 'ວິນາທີ';
+  $('fsSay').textContent = 'ກຳລັງບັນທຶກ — ຢູ່ນິ້ງໆ';
+  $('fsWho').textContent = 'ກຳລັງບັນທຶກ';
+  cap.recorder.start();
+
+  const t0 = Date.now();
+  cap.timer = setInterval(() => {
+    if (!capture || cap.cancelled) return;
+    const left = cap.seconds - (Date.now() - t0) / 1000;
+    $('fsNum').textContent = Math.max(0, Math.ceil(left));
+    setArc(Math.max(0, left / cap.seconds));
+    if (left <= 0) {
+      clearInterval(cap.timer); cap.timer = null;
+      cap.finishing = true;                       // an expected exit, not a cancel
+      $('fsSay').textContent = 'ບັນທຶກສຳເລັດ — ກຳລັງປິດກ້ອງ…';
+      if (cap.recorder.state === 'recording') cap.recorder.stop();
+    }
+  }, 80);
+}
+
+/* ── ວິເຄາະ ─────────────────────────────────────────────────── */
+async function send(blob, name){
+  busy(true);
+  say('ກຳລັງວິເຄາະ ' + name + ' — ກຳລັງກວດຫາໃບໜ້າ ແລະ ປະມວນຜົນ…', 'info');
+  const fd = new FormData();
+  fd.append('video', blob, name);
+  const c = calValues();
+  if (c) { fd.append('cal_systolic', c.s); fd.append('cal_diastolic', c.d); fd.append('cal_hr', c.hr); }
+  try {
+    const res = await fetch('/api/analyze', {method:'POST', body:fd});
+    const data = await res.json();
+    if (!res.ok) throw new Error(tr(data.error) || ('ຄຳຮ້ອງຂໍລົ້ມເຫລວ (' + res.status + ')'));
+    render(data, name);
+    clearMsg();
+  } catch (err) {
+    say(err.message, 'error');
+  } finally {
+    busy(false);
+    fileInput.value = '';
+  }
+}
+
+/* ── ສະແດງຜົນ ───────────────────────────────────────────────── */
+const LOW_CONF = 0.35;
+
+function render(d, name){
+  $('empty').hidden = true;
+  $('results').hidden = false;
+  const num = v => (v === null || v === undefined || Number.isNaN(v)) ? '--' : v;
+
+  $('hrVal').textContent = num(d.heart_rate);
+  $('rrVal').textContent = num(d.respiratory_rate);
+  $('spVal').textContent = d.spo2 === null ? '--' : d.spo2;
+
+  $('hrFoot').textContent = 'ຄຸນນະພາບສັນຍານ ' + Math.round(d.heart_rate_confidence * 100)
+    + '% · ' + d.frames_analyzed + ' ເຟຣມ @ ' + d.fps + ' fps';
+  $('rrFoot').textContent = 'ຄຸນນະພາບສັນຍານ ' + Math.round(d.respiratory_rate_confidence * 100) + '%';
+  $('spFoot').textContent = d.spo2 === null
+    ? 'ຄ່າຄຳນວນເກີນຂອບເຂດ (R=' + d.spo2_ratio + ')'
+    : 'ຍັງບໍ່ໄດ້ປັບທຽບ · R=' + d.spo2_ratio;
+
+  $('hrBadge').hidden = d.heart_rate_confidence >= LOW_CONF;
+  $('rrBadge').hidden = d.respiratory_rate_confidence >= LOW_CONF;
+
+  /* ຄວາມດັນເລືອດ */
+  const bp = d.blood_pressure || {};
+  if (bp.available) {
+    const rateOnly = bp.quality === 'rate_only';
+    $('bpVal').textContent = bp.systolic + '/' + bp.diastolic;
+    $('bpFoot').textContent = rateOnly
+      ? 'MAP ' + bp.map + ' · ຈາກອັດຕາການເຕັ້ນເທົ່ານັ້ນ (ຮູບຄື້ນບໍ່ຊັດ)'
+      : 'MAP ' + bp.map + ' · ເຕັ້ນ ' + bp.beats_detected + ' ຄັ້ງ' +
+        (bp.systolic_upstroke_ms ? ' · ຂາຂຶ້ນ ' + bp.systolic_upstroke_ms + ' ມລ.ວິ' : '');
+    $('bpBadge').textContent = rateOnly ? 'ຄຸນນະພາບຕ່ຳ'
+                                        : (bp.calibrated ? 'ປັບທຽບແລ້ວ' : 'ຍັງບໍ່ປັບທຽບ');
+    $('bpBadge').className = 'badge ' + (rateOnly ? 'low' : (bp.calibrated ? 'cal' : 'exp'));
+    $('bpNote').innerHTML = rateOnly
+      ? '<b>ຮູບຄື້ນຊີພະຈອນບໍ່ຊັດພໍທີ່ຈະວິເຄາະຮູບຮ່າງໄດ້.</b> ' +
+        'ຄ່າຄວາມດັນເລືອດນີ້ຄຳນວນຈາກອັດຕາການເຕັ້ນຫົວໃຈຢ່າງດຽວ ຈຶ່ງມີຄວາມແມ່ນຍຳຕ່ຳກວ່າປົກກະຕິຫຼາຍ. ' +
+        'ໃຫ້ບັນທຶກໃໝ່ໃນບ່ອນທີ່ມີແສງສະໝ່ຳສະເໝີ, ຢູ່ນິ້ງໆ ແລະ ໃຊ້ຄລິບຍາວ 20–30 ວິນາທີ.'
+      : bp.calibrated
+      ? '<b>ຄວາມດັນເລືອດຖືກປັບທຽບກັບຄ່າອ້າງອີງຈາກເຄື່ອງວັດແບບປອກແຂນຂອງທ່ານແລ້ວ.</b> ' +
+        'ມີພຽງ <i>ການປ່ຽນແປງ</i> ທຽບກັບຄ່າອ້າງອີງນັ້ນເທົ່ານັ້ນທີ່ມີຄວາມໝາຍ; ' +
+        'ແບບຈຳລອງທີ່ຢູ່ເບື້ອງຫຼັງບໍ່ໄດ້ຮັບການຝຶກດ້ວຍຂໍ້ມູນຄວາມດັນເລືອດຄູ່ ແລະ ຍັງບໍ່ໄດ້ຮັບການກວດສອບ.'
+      : '<b>ຄວາມດັນເລືອດເປັນການປະເມີນທີ່ຍຶດຄ່າປະຊາກອນ ແລະ ຍັງບໍ່ໄດ້ປັບທຽບ.</b> ' +
+        'ຄຳນວນຈາກຮູບຮ່າງຄື້ນຊີພະຈອນ (ເວລາຂາຂຶ້ນ, ຄວາມກວ້າງຄື້ນ, ອັດຕາການເຕັ້ນຫົວໃຈ) ' +
+        'ດ້ວຍຄ່າສຳປະສິດທີ່ອີງຕາມສະລີລະສາດ ແຕ່ຍັງບໍ່ໄດ້ຝຶກຈາກຂໍ້ມູນຈິງ. ' +
+        'ຄ່າສົມບູນອາດຄາດເຄື່ອນຫຼາຍໃນແຕ່ລະບຸກຄົນ. ' +
+        'ໃຫ້ປ້ອນຄ່າອ້າງອີງໃນ “ການປັບທຽບຄວາມດັນເລືອດ” ເພື່ອຍຶດຄ່າ.';
+  } else {
+    $('bpVal').textContent = '--';
+    $('bpFoot').textContent = tr(bp.reason) || 'ບໍ່ມີຂໍ້ມູນ';
+    $('bpBadge').textContent = 'ບໍ່ມີຂໍ້ມູນ';
+    $('bpBadge').className = 'badge low';
+    $('bpNote').textContent = 'ບໍ່ສາມາດປະເມີນຄວາມດັນເລືອດຈາກຄລິບນີ້ໄດ້: ' + tr(bp.reason) + '.';
+  }
+
+  $('hrQualVal').textContent = Math.round(d.heart_rate_confidence * 100);
+  $('rrLbl').textContent = num(d.respiratory_rate) + ' ຄັ້ງ/ນາທີ';
+
+  // The trace itself reports its own reliability: a confident pulse draws as a
+  // solid glowing line, a weak one as a thin dashed one that does not animate.
+  $('strip').classList.toggle('weak', d.heart_rate_confidence < LOW_CONF);
+  drawPulse(d.pulse_waveform);
+  drawResp(d.resp_waveform);
+
+  $('mPid').textContent = $('pid').value.trim() || '—';
+  $('mSrc').textContent = name;
+  $('mDur').textContent = d.duration_seconds + ' ວິ';
+  $('mFrames').textContent = d.frames_analyzed;
+  $('mFps').textContent = d.fps + ' fps';
+  $('mTime').textContent = new Date().toLocaleTimeString('lo-LA');
+
+  lastVitals = {
+    heart_rate: d.heart_rate,
+    respiratory_rate: d.respiratory_rate,
+    spo2: d.spo2,
+    blood_pressure: (bp.available ? bp.systolic + '/' + bp.diastolic : null),
+  };
+}
+
+function path(points, W, H, pad){
+  const step = W / (points.length - 1);
+  // Values arrive normalized to [-1,1]; invert for SVG's downward y axis so a
+  // rising signal draws upward.
+  return points.map((v, i) =>
+    (i ? 'L' : 'M') + (i * step).toFixed(2) + ' ' +
+    (H/2 - v * (H/2 - pad)).toFixed(2)).join(' ');
+}
+
+function drawPulse(points){
+  const svg = $('pulseSvg'), W = 1000, H = 196;
+  if (!points || !points.length) { svg.innerHTML = ''; return; }
+  let grid = '';
+  for (let i = 1; i < 8; i++)
+    grid += '<line x1="' + (W/8*i) + '" y1="0" x2="' + (W/8*i) + '" y2="' + H + '"/>';
+  svg.innerHTML =
+    '<g class="grid">' + grid + '</g>' +
+    '<line class="base" x1="0" y1="' + H/2 + '" x2="' + W + '" y2="' + H/2 + '"/>' +
+    '<path class="wave" d="' + path(points, W, H, 26) + '"/>';
+  // Restart the write-on animation for every new measurement. The dash length
+  // has to be the path's real length: a hardcoded value shorter than the trace
+  // leaves its tail permanently undrawn.
+  const w = svg.querySelector('.wave');
+  const len = Math.ceil(w.getTotalLength());
+  w.style.strokeDasharray = len;
+  w.style.strokeDashoffset = len;
+  void w.getBoundingClientRect();
+  w.classList.add('draw');
+}
+
+function drawResp(points){
+  const svg = $('respSvg'), W = 1000, H = 74;
+  if (!points || !points.length) { svg.innerHTML = ''; return; }
+  svg.innerHTML =
+    '<line class="base" x1="0" y1="' + H/2 + '" x2="' + W + '" y2="' + H/2 + '"/>' +
+    '<path class="wave" d="' + path(points, W, H, 9) + '"/>';
+}
+
+/* ── ຄວາມສ່ຽງເປັນອຳມະພາດ ─────────────────────────────────────────────
+   The score is computed server-side by a validated instrument. The model, if
+   asked, only puts that result into words -- it never supplies the number, and
+   the server rejects its text outright if it invents a percentage. */
+const BAND_LAO = {low:'ຄວາມສ່ຽງຕ່ຳ', intermediate:'ຄວາມສ່ຽງປານກາງ',
+                  moderate:'ຄວາມສ່ຽງປານກາງ', high:'ຄວາມສ່ຽງສູງ'};
+// Vitals from the most recent measurement, sent along so the narrative covers
+// the whole picture and not just the entered risk factors.
+let lastVitals = null;
+
+function syncRiskPill(){
+  const age = $('rAge').value.trim();
+  $('riskPill').textContent = age ? (age + ' ປີ' + ($('rAf').checked ? ' · AF' : '')) : 'ປິດ';
+  $('riskPill').className = age ? 'tag' : 'tag off';
+}
+['rAge','rAf','rSex'].forEach(id => { $(id).oninput = syncRiskPill; $(id).onchange = syncRiskPill; });
+
+$('riskBtn').onclick = async () => {
+  const age = parseFloat($('rAge').value);
+  if (!age) { say('ກະລຸນາປ້ອນອາຍຸກ່ອນ', 'error'); return; }
+
+  const fd = new FormData();
+  fd.append('age', age);
+  if ($('rSex').value === 'f') fd.append('female', '1');
+  [['rAf','atrial_fibrillation'],['rHtn','hypertension'],['rDm','diabetes'],
+   ['rChf','chf'],['rVasc','vascular'],['rPrior','prior_stroke'],
+   ['rSmoke','smoking'],['rExplain','explain']]
+    .forEach(([el, field]) => { if ($(el).checked) fd.append(field, '1'); });
+  if (lastVitals) {
+    Object.entries(lastVitals).forEach(([k, v]) => {
+      if (v !== null && v !== undefined) fd.append(k, v);
+    });
+  }
+
+  $('riskBtn').disabled = true;
+  $('riskBtn').textContent = 'ກຳລັງຄຳນວນ…';
+  try {
+    const res = await fetch('/api/stroke-risk', {method:'POST', body:fd});
+    const d = await res.json();
+    if (!res.ok) throw new Error(tr(d.error));
+    renderRisk(d);
+    $('empty').hidden = true;
+    $('results').hidden = false;
+    clearMsg();
+    $('riskCard').scrollIntoView({behavior:'smooth', block:'nearest'});
+  } catch (err) {
+    say(err.message, 'error');
+  } finally {
+    $('riskBtn').disabled = false;
+    $('riskBtn').textContent = 'ຄຳນວນຄວາມສ່ຽງ';
+  }
+};
+
+function renderRisk(d){
+  $('riskCard').hidden = false;
+
+  // Out of scope means no percentage is shown at all. CHA2DS2-VASc was derived
+  // in atrial fibrillation; applying it to anyone else would be a number
+  // without a population behind it.
+  const overall = d.overall_band || 'moderate';
+  const hasPct = d.annual_risk_percent !== null && d.annual_risk_percent !== undefined;
+  $('riskNum').className = 'num' + (hasPct ? '' : ' none');
+  $('riskNum').innerHTML =
+    (hasPct
+      ? '<div class="big">' + d.annual_risk_percent + '<span class="u">% ຕໍ່ປີ</span></div>'
+      : '<div class="big">' + (BAND_LAO[overall] || overall) + '</div>') +
+    '<div class="sc">ພົບປັດໄຈສ່ຽງ ' + d.burden_count + '/' + d.burden_total + '</div>' +
+    '<div class="bd2 ' + overall + '">' + (BAND_LAO[overall] || overall) + '</div>' +
+    (hasPct ? '<div class="sc" style="margin-top:6px">CHA₂DS₂-VASc ' +
+       d.score + '/' + d.max_score + '</div>' : '');
+
+  $('riskChips').innerHTML = (d.breakdown || []).length
+    ? d.breakdown.map(c => '<span class="f' + (c.modifiable ? ' mod' : '') + '">' +
+        c.label + (c.points ? '<span class="p">+' + c.points + '</span>' : '') + '</span>').join('')
+    : '<span class="f">ບໍ່ພົບປັດໄຈສ່ຽງ</span>';
+
+  let prose = '';
+  if (!hasPct) {
+    prose += '<div class="warn">ນີ້ແມ່ນ<b>ການປະເມີນລວມ</b>ຈາກຈຳນວນປັດໄຈສ່ຽງທີ່ພົບ ' +
+      '— ບໍ່ແມ່ນຄ່າຄວາມນ່າຈະເປັນ. ' + (d.reason || '') + '.</div>';
+  }
+  if (d.rate_uncertain) {
+    prose += '<div class="warn" style="margin-top:10px">ໝາຍເຫດ: ຄ່າຂອງຄະແນນນີ້ໃນເອກະສານຕົ້ນສະບັບ' +
+      'ມາຈາກກຸ່ມຕົວຢ່າງຂະໜາດນ້ອຍ ແລະ ບໍ່ເພີ່ມຂຶ້ນຕາມລຳດັບ — ໃຫ້ຕີຄວາມດ້ວຍຄວາມລະມັດລະວັງ.</div>';
+  }
+  if (d.explanation) {
+    prose += '<div class="prose" style="margin-top:10px">' +
+      d.explanation.text.replace(/[<>]/g, '') +
+      '<span class="by">ຄຳອະທິບາຍສ້າງໂດຍ ' + d.explanation.model +
+      (d.explanation.fallback_used ? ' (ໃຊ້ຕົວສຳຮອງ)' : '') +
+      ' — ຕົວເລກທັງໝົດມາຈາກສູດ CHA₂DS₂-VASc, ບໍ່ແມ່ນຈາກ AI</span></div>';
+  } else if (d.explanation_error) {
+    prose += '<div class="warn" style="margin-top:10px">ບໍ່ສາມາດສ້າງຄຳອະທິບາຍໄດ້: ' +
+      d.explanation_error.replace(/[<>]/g, '') +
+      '. ຄະແນນ ແລະ ເປີເຊັນຂ້າງເທິງບໍ່ໄດ້ຮັບຜົນກະທົບ.</div>';
+  }
+  $('riskProse').innerHTML = prose;
+
+  $('riskSrc').innerHTML = hasPct
+    ? 'ເປີເຊັນຄຳນວນດ້ວຍ CHA₂DS₂-VASc (ໃຊ້ໄດ້ກັບຄົນເຈັບທີ່ມີ AF) — ອັດຕາຕໍ່ປີອ້າງອີງຈາກ ' +
+      (d.source || '') + '. ບໍ່ແມ່ນການວິນິດໄສ — ໃຫ້ປຶກສາແພດສະເໝີ.'
+    : 'ການປະເມີນລວມແມ່ນນັບຈາກປັດໄຈສ່ຽງທີ່ຮັບຮູ້ທົ່ວໄປ (ຄວາມດັນສູງ, ເບົາຫວານ, ສູບຢາ, AF, ' +
+      'ເຄີຍເປັນອຳມະພາດ, ພະຍາດຫຼອດເລືອດ, ຫົວໃຈວາຍ, ອາຍຸ ≥65) — ເປັນຂໍ້ມູນປະກອບ, ' +
+      'ບໍ່ແມ່ນຄ່າຄວາມນ່າຈະເປັນ ແລະ ບໍ່ແມ່ນການວິນິດໄສ. ໃຫ້ປຶກສາແພດສະເໝີ.';
+}
+
+syncCalPill();
+syncRiskPill();
+</script>
+</body>
+</html>

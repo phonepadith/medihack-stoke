@@ -1,0 +1,10 @@
+# Upstream requirements.txt pinned 2018-era builds (tensorflow-gpu==1.5.0,
+# opencv-python==3.4.0, numpy==1.17.0) that do not build on any current Python.
+# TensorFlow is held at 2.15 on purpose: vitals/model.py calls K.int_shape and
+# subclasses tf.keras.layers.Layer in the Keras 2 style, both removed in the
+# Keras 3 default that ships with TF 2.16+.
+flask==3.0.3
+numpy==1.26.4
+scipy==1.11.4
+opencv-python-headless==4.10.0.84
+tensorflow-cpu==2.15.1
