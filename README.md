@@ -32,11 +32,17 @@ banner.
 
 ```bash
 docker build -t vitals-monitor:1.0 .
-docker run -d --name vitals -p 8080:8080 --restart unless-stopped vitals-monitor:1.0
+docker run -d --name vitals -p 8080:8080 --restart unless-stopped \
+    -v vitals-data:/data vitals-monitor:1.0
 ```
 
 Open <http://localhost:8080>. The interface is in Lao (ພາສາລາວ), set in
-`static/index.html`.
+`static/index.html`. The first screen is a login; create an account on the
+**ສ້າງບັນຊີ** tab — see [Accounts](#accounts).
+
+The `-v vitals-data:/data` mount is not optional in practice. Accounts and the
+session signing key live there, and without it both are inside the container
+layer, so every rebuild silently makes all existing logins invalid.
 
 **Capture flow.** One button opens the camera full screen, counts down 3
 seconds, records for the selected length, then closes the camera and starts
@@ -50,6 +56,65 @@ Camera access needs `localhost` or HTTPS — browsers refuse it on a plain-HTTP
 LAN address. File upload works from any origin. Use `localhost`, not the machine's LAN IP —
 browsers only grant camera access on a secure origin, and `localhost` counts
 while a plain-HTTP LAN address does not. File upload works from any origin.
+
+## Accounts
+
+The capture and scoring endpoints handle patient health data, so they are not
+open to anyone who can reach the port. `GET /` and `GET /api/health` are the
+only unauthenticated routes; everything else returns `401` without a session.
+
+Registration is open — there is no invite or admin role. For a single-clinic
+prototype on a LAN that is the right trade: the alternative is bootstrapping an
+administrator account, which is one more secret to distribute and to leak. If
+this is ever exposed beyond a trusted network, close registration first.
+
+**What is stored.** Username, display name, a scrypt password hash, and two
+timestamps, in a SQLite file at `VITALS_DB` (`/data/vitals.db` in the
+container). No patient data is written to it: measurements are computed per
+request and returned, never persisted. Nothing is stored that links a clinician
+to a clip.
+
+**Password hashing** is `hashlib.scrypt` at the RFC 7914 interactive
+parameters (N=2¹⁴, r=8, p=1), with a 16-byte random salt per user and the cost
+parameters written into each record — so raising the cost later does not lock
+out existing accounts. Verification is `hmac.compare_digest`. A login for an
+unknown username still runs a hash, so the response time does not reveal which
+usernames exist.
+
+**Sessions** are Flask's signed cookies: `HttpOnly`, `SameSite=Lax`, 7 days.
+Nothing but the user id goes in the cookie, and the account row is re-read on
+every request, so deleting a user takes effect immediately rather than when
+their cookie expires.
+
+**Brute force.** Eight failed attempts on a username within 15 minutes return
+`429` until the window passes. The counter is in-process memory and resets on
+restart — enough to blunt a script against one account, not a defence against a
+distributed campaign. A reverse proxy with real rate limiting belongs in front
+of this if it is ever internet-facing.
+
+**Signing out** clears the screen as well as the session: the patient
+identifier, the cuff calibration, the risk factors and the results all go, so
+the next person at the workstation does not inherit them.
+
+No dependency was added for any of this — `sqlite3`, `hashlib` and `hmac` are
+standard library, and `requirements.txt` is unchanged.
+
+### Account settings
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VITALS_DB` | `/data/vitals.db` (container), `./vitals.db` (local) | SQLite account store. |
+| `SECRET_KEY` | generated once into `.flask-secret` beside the database, mode 0600 | Session cookie signing key. Changing it invalidates every session. |
+| `COOKIE_SECURE` | unset | Set to `1` behind TLS. Left off by default because a `Secure` cookie is never sent over the plain HTTP this demo runs on, which looks exactly like a login that succeeds and then does nothing. |
+| `SESSION_DAYS` | `7` | Session lifetime. |
+
+There is no password reset and no admin UI. To remove an account:
+
+```bash
+docker exec vitals python -c "import sqlite3; \
+  sqlite3.connect('/data/vitals.db').execute(\
+  \"DELETE FROM users WHERE username='someone'\").connection.commit()"
+```
 
 ## Stroke risk
 
@@ -343,24 +408,37 @@ whose frame-difference energy peaks twice per cycle, so it reads out at exactly
 
 ## API
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/health` | Liveness, and whether ffmpeg is present. |
-| `POST /api/warmup` | Build the TensorFlow graph ahead of the first upload. |
-| `POST /api/analyze` | `multipart/form-data` with a `video` field. Optional `cal_systolic`, `cal_diastolic`, `cal_hr` re-anchor the BP estimate. Returns rates, confidences, BP, and normalized waveforms. |
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `GET /api/health` | open | Liveness, whether ffmpeg is present, and the signed-in user (`null` if none). |
+| `POST /api/auth/register` | open | `{username, password, full_name}`. Creates the account and signs in. `409` if the username is taken. |
+| `POST /api/auth/login` | open | `{username, password}`. `401` on bad credentials, `429` when throttled. |
+| `POST /api/auth/logout` | open | Clears the session. |
+| `GET /api/auth/me` | session | The signed-in clinician, or `401`. |
+| `POST /api/warmup` | session | Build the TensorFlow graph ahead of the first upload. |
+| `POST /api/analyze` | session | `multipart/form-data` with a `video` field. Optional `cal_systolic`, `cal_diastolic`, `cal_hr` re-anchor the BP estimate. Returns rates, confidences, BP, and normalized waveforms. |
+| `POST /api/stroke-risk` | session | CHA₂DS₂-VASc scoring, optionally with a generated explanation. |
+
+Both auth routes accept JSON or form encoding.
 
 ```bash
+# sign in once and keep the session cookie
+curl -sc jar -X POST http://localhost:8080/api/auth/login \
+     -H 'Content-Type: application/json' \
+     -d '{"username":"dr.somchai","password":"..."}'
+
 # uncalibrated
-curl -X POST -F "video=@clip.mp4" http://localhost:8080/api/analyze
+curl -b jar -X POST -F "video=@clip.mp4" http://localhost:8080/api/analyze
 
 # anchored to a reference cuff reading of 128/82 taken at 74 bpm
-curl -X POST -F "video=@clip.mp4" \
+curl -b jar -X POST -F "video=@clip.mp4" \
      -F "cal_systolic=128" -F "cal_diastolic=82" -F "cal_hr=74" \
      http://localhost:8080/api/analyze
 ```
 
-Errors: `400` bad request or file type, `413` over the 200 MB limit,
-`422` unusable clip (no face, too short), `500` inference failure.
+Errors: `400` bad request or file type, `401` no or expired session,
+`409` username taken, `413` over the 200 MB limit, `422` unusable clip
+(no face, too short), `429` login throttled, `500` inference failure.
 
 ## What was changed from upstream
 

@@ -47,8 +47,12 @@ fi
 # `clinic` joins this container to the FreeLLMAPI gateway so the stroke-risk
 # explanation can reach it by name. The gateway itself stays bound to loopback.
 docker network create clinic >/dev/null 2>&1 || true
+# vitals-data holds the clinician accounts and the session signing key, so
+# recreating the container below does not wipe everyone's login.
+docker volume create vitals-data >/dev/null 2>&1 || true
 docker run -d --name "$NAME" -p "${PORT}:8080" --restart unless-stopped \
     --network clinic \
+    -v vitals-data:/data \
     -e LLM_GATEWAY="${LLM_GATEWAY:-http://freellmapi:3001/v1/chat/completions}" \
     -e LLM_API_KEY="${LLM_API_KEY:-}" \
     -e LLM_MODEL="${LLM_MODEL:-auto}" \

@@ -16,8 +16,16 @@ COPY vitals/ ./vitals/
 COPY static/ ./static/
 COPY mtts_can.hdf5 .
 
+# Accounts and the session signing key live on a volume, not in the image
+# layer: autostart.sh recreates this container whenever the image is rebuilt or
+# a stale one will not start, and every clinician would otherwise have to
+# register again after each of those.
+RUN mkdir -p /data
+VOLUME /data
+
 ENV PORT=8080 \
     MTTS_CAN_WEIGHTS=/app/mtts_can.hdf5 \
+    VITALS_DB=/data/vitals.db \
     TF_CPP_MIN_LOG_LEVEL=3
 
 EXPOSE 8080

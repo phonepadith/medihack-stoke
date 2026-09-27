@@ -13,6 +13,7 @@ import traceback
 
 from flask import Flask, jsonify, request, send_from_directory
 
+from vitals import auth
 from vitals.explain import ExplainError, explain
 from vitals.pipeline import analyze, get_model
 from vitals.stroke import score as stroke_score
@@ -25,6 +26,11 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 # that, but the correct type lets them cache and sniff the font properly.
 mimetypes.add_type("font/woff2", ".woff2")
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
+
+# Clinician accounts. Everything that touches a patient clip or a risk score
+# sits behind @auth.login_required; only / and /api/health stay open, so a
+# health check and the login screen itself still work unauthenticated.
+auth.init_app(app)
 
 
 def _normalize(src, suffix):
@@ -54,10 +60,16 @@ def index():
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "ffmpeg": bool(shutil.which("ffmpeg"))})
+    """Public: also reports whether this caller already has a session, so the
+    page can decide in one round trip whether to show the login screen."""
+    user = auth.current_user()
+    return jsonify({"status": "ok", "ffmpeg": bool(shutil.which("ffmpeg")),
+                    "user": {"username": user["username"],
+                             "full_name": user["full_name"]} if user else None})
 
 
 @app.post("/api/warmup")
+@auth.login_required
 def warmup():
     """Build the TensorFlow graph before the first real request, so the first
     clinician to upload a clip does not pay the ~10 s model load."""
@@ -69,6 +81,7 @@ def warmup():
 
 
 @app.post("/api/analyze")
+@auth.login_required
 def analyze_video():
     upload = request.files.get("video")
     if upload is None or not upload.filename:
@@ -117,6 +130,7 @@ def _flag(form, name):
 
 
 @app.post("/api/stroke-risk")
+@auth.login_required
 def stroke_risk():
     """Score stroke risk, then optionally have the LLM put it into Lao.
 
@@ -169,6 +183,7 @@ def stroke_risk():
 
 
 @app.get("/api/llm-status")
+@auth.login_required
 def llm_status():
     """Whether the FreeLLMAPI gateway is reachable and has a usable model."""
     import urllib.error, urllib.request

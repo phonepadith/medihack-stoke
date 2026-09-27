@@ -8,3 +8,9 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# Account store and session signing key: local state, per-deployment
+vitals.db
+vitals.db-wal
+vitals.db-shm
+.flask-secret

@@ -2,3 +2,8 @@ upstream/
 __pycache__/
 *.pyc
 .venv/
+vitals.db
+vitals.db-wal
+vitals.db-shm
+.flask-secret
+.llm-env

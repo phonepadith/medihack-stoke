@@ -56,6 +56,17 @@
   .led{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:0 0 auto}
   .led.ok{background:var(--trace)} .led.err{background:var(--alert)}
 
+  /* who is signed in, and the way out -- to the right of the service state so
+     the masthead reads left to right as identity, then status, then account */
+  .acct{display:flex;align-items:center;gap:10px}
+  .acct .nm{display:flex;flex-direction:column;line-height:1.35;text-align:right}
+  .acct .nm b{font-size:12.5px;font-weight:600;color:var(--ink)}
+  .acct .nm span{font-size:11px;font-family:var(--mono);color:var(--ink-3)}
+  .acct .out{width:auto;padding:7px 14px;font-size:12.5px;background:var(--card);
+    color:var(--ink-2);border:1px solid var(--rule)}
+  .acct .out:hover{border-color:var(--alert);color:var(--alert)}
+  @media(max-width:640px){.acct .nm{display:none}}
+
   /* ══ disclosure ═════════════════════════════════════════════════════ */
   .notice{padding:13px 28px;background:var(--caution-bg);
     border-bottom:1px solid var(--caution-line);color:var(--caution);font-size:13px}
@@ -79,10 +90,10 @@
   .box .in{padding:18px}
 
   label{display:block;font-size:12px;color:var(--ink-2);margin-bottom:6px;font-weight:600}
-  input[type=text],input[type=number],select{width:100%;padding:10px 12px;background:var(--card);
-    border:1px solid var(--rule);border-radius:9px;color:var(--ink);font-size:14.5px;
-    font-family:var(--lao)}
-  input[type=text],input[type=number]{font-family:var(--mono)}
+  input[type=text],input[type=number],input[type=password],select{width:100%;padding:10px 12px;
+    background:var(--card);border:1px solid var(--rule);border-radius:9px;color:var(--ink);
+    font-size:14.5px;font-family:var(--lao)}
+  input[type=text],input[type=number],input[type=password]{font-family:var(--mono)}
   input:focus,select:focus{outline:none;border-color:var(--vital);
     box-shadow:0 0 0 3px var(--wash)}
   .pair{display:flex;gap:12px}.pair>*{flex:1}
@@ -326,6 +337,41 @@
   .fs.ready .dial .fg{stroke:#E0A82E}
   .fs.ready .dial .ctr .n{font-size:64px}
 
+  /* ══ ປະຕູເຂົ້າລະບົບ / auth gate ══════════════════════════
+     A full-cover panel, not a second page: a separate login.html would have to
+     duplicate the tokens, the fonts and the masthead, and then drift from them.
+     It ships visible and is removed once /api/health confirms a session, so a
+     signed-out visitor never sees the patient interface flash past. */
+  .gate{position:fixed;inset:0;z-index:200;background:var(--paper);
+    overflow-y:auto;padding:30px 20px 56px;display:none}
+  .gate.on{display:block}
+  .gate .panel{max-width:414px;margin:max(3vh,10px) auto 0;background:var(--card);
+    border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+  .gate .brand{display:flex;align-items:center;gap:13px;padding:21px 23px 17px}
+  .gate .brand h2{margin:0;font-size:16.5px;font-weight:700;letter-spacing:-.1px;line-height:1.5}
+  .gate .brand .sub{color:var(--ink-3);font-size:11.5px;font-family:var(--mono);
+    letter-spacing:.3px;line-height:1.5}
+
+  .gate .tabs{display:flex;border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule)}
+  .gate .tabs button{flex:1;width:auto;background:none;border:0;border-radius:0;padding:13px 10px;
+    font-size:13.5px;font-weight:600;color:var(--ink-3);border-bottom:2px solid transparent;
+    margin-bottom:-1px}
+  .gate .tabs button[aria-selected=true]{color:var(--vital);border-bottom-color:var(--vital)}
+  .gate .tabs button:hover:not([aria-selected=true]){color:var(--ink-2);background:var(--wash)}
+
+  .gate form{padding:19px 23px 23px}
+  .gate .lead{font-size:12.5px;color:var(--ink-2);line-height:1.8;margin:0 0 17px}
+  .gate .err{display:none;font-size:12.5px;line-height:1.75;color:var(--alert);
+    background:#FDF3F3;border:1px solid #F0D2D2;border-radius:9px;padding:10px 12px;
+    margin:0 0 15px}
+  .gate .err.show{display:block}
+  .gate .sm{font-size:11.5px;color:var(--ink-3);margin:7px 0 0;line-height:1.7}
+  .gate button.go{margin-top:5px}
+
+  /* Research prototype, so say at the door what the data is and is not. */
+  .gate .foot{max-width:414px;margin:16px auto 0;font-size:11.5px;line-height:1.8;
+    color:var(--ink-3);text-align:center}
+
   @media(max-width:640px){
     .top,.notice{padding-left:18px;padding-right:18px}
     .shell{padding:18px 18px 44px}
@@ -337,6 +383,59 @@
 </style>
 </head>
 <body>
+
+<!-- ─────────── ປະຕູເຂົ້າລະບົບ ─────────── -->
+<div class="gate on" id="gate">
+  <div class="panel">
+    <div class="brand">
+      <span class="mark">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </span>
+      <div>
+        <h2>ເຄື່ອງຕິດຕາມສັນຍານຊີບ</h2>
+        <div class="sub">rPPG · MTTS-CAN</div>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabIn" aria-selected="true" aria-controls="formIn">ເຂົ້າສູ່ລະບົບ</button>
+      <button role="tab" id="tabUp" aria-selected="false" aria-controls="formUp">ສ້າງບັນຊີ</button>
+    </div>
+
+    <form id="formIn" role="tabpanel" aria-labelledby="tabIn">
+      <p class="lead">ການວັດສັນຍານຊີບເປັນຂໍ້ມູນສຸຂະພາບຂອງຄົນເຈັບ — ຕ້ອງເຂົ້າສູ່ລະບົບກ່ອນໃຊ້ງານ.</p>
+      <div class="err" id="errIn" role="alert"></div>
+      <div class="f"><label for="inUser">ຊື່ຜູ້ໃຊ້</label>
+        <input type="text" id="inUser" autocomplete="username" autocapitalize="none"
+               spellcheck="false" required></div>
+      <div class="f"><label for="inPass">ລະຫັດຜ່ານ</label>
+        <input type="password" id="inPass" autocomplete="current-password" required></div>
+      <button class="go" type="submit" id="inBtn">ເຂົ້າສູ່ລະບົບ</button>
+    </form>
+
+    <form id="formUp" role="tabpanel" aria-labelledby="tabUp" hidden>
+      <p class="lead">ສ້າງບັນຊີສຳລັບແພດ ຫຼື ພະນັກງານທີ່ເປັນຜູ້ວັດ. ຊື່ຜູ້ໃຊ້ຈະຖືກບັນທຶກໄວ້ກັບການວັດແຕ່ລະຄັ້ງ.</p>
+      <div class="err" id="errUp" role="alert"></div>
+      <div class="f"><label for="upName">ຊື່ ແລະ ນາມສະກຸນ</label>
+        <input type="text" id="upName" autocomplete="name" style="font-family:var(--lao)"></div>
+      <div class="f"><label for="upUser">ຊື່ຜູ້ໃຊ້</label>
+        <input type="text" id="upUser" autocomplete="username" autocapitalize="none"
+               spellcheck="false" required>
+        <p class="sm">3–32 ຕົວ — ຕົວອັກສອນລາຕິນ, ຕົວເລກ, ຈຸດ, ຂີດ ແລະ ຂີດລຸ່ມ</p></div>
+      <div class="f"><label for="upPass">ລະຫັດຜ່ານ</label>
+        <input type="password" id="upPass" autocomplete="new-password" required>
+        <p class="sm">ຢ່າງໜ້ອຍ 8 ຕົວ</p></div>
+      <div class="f"><label for="upPass2">ຢືນຢັນລະຫັດຜ່ານ</label>
+        <input type="password" id="upPass2" autocomplete="new-password" required></div>
+      <button class="go" type="submit" id="upBtn">ສ້າງບັນຊີ ແລະ ເຂົ້າສູ່ລະບົບ</button>
+    </form>
+  </div>
+
+  <p class="foot">ຕົວຢ່າງເພື່ອການຄົ້ນຄວ້າ — ບໍ່ແມ່ນອຸປະກອນທາງການແພດ.<br>
+    ຫ້າມນຳໃຊ້ເພື່ອການວິນິດໄສ ຫຼື ການຕັດສິນໃຈທາງຄລີນິກ.</p>
+</div>
 
 <header class="top">
   <span class="mark">
@@ -350,6 +449,10 @@
   </div>
   <div class="grow"></div>
   <div class="state"><span class="led" id="dot"></span><span id="statusText">ກຳລັງເຊື່ອມຕໍ່…</span></div>
+  <div class="acct" id="acct" hidden>
+    <div class="nm"><b id="acctName"></b><span id="acctUser"></span></div>
+    <button class="out" id="logoutBtn">ອອກຈາກລະບົບ</button>
+  </div>
 </header>
 
 <div class="notice">
@@ -609,6 +712,16 @@ const ERRORS = [
                                      'ຄ່າປັບທຽບຢູ່ນອກຂອບເຂດທີ່ເປັນໄປໄດ້'],
   [/calibration values must be numeric/i, 'ຄ່າປັບທຽບຕ້ອງເປັນຕົວເລກ'],
   [/inference failed/i,              'ການປະມວນຜົນລົ້ມເຫລວ'],
+  /* ບັນຊີ / auth */
+  [/authentication required/i,       'ກະລຸນາເຂົ້າສູ່ລະບົບກ່ອນ'],
+  [/wrong username or password/i,    'ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ'],
+  [/username already taken/i,        'ຊື່ຜູ້ໃຊ້ນີ້ຖືກໃຊ້ແລ້ວ — ກະລຸນາເລືອກຊື່ອື່ນ'],
+  [/too many failed attempts/i,      'ລອງເຂົ້າຜິດຫຼາຍຄັ້ງເກີນໄປ — ກະລຸນາລໍຖ້າ 15 ນາທີ ແລ້ວລອງໃໝ່'],
+  [/username must be 3-32 characters/i,
+                                     'ຊື່ຜູ້ໃຊ້ຕ້ອງມີ 3–32 ຕົວ ແລະ ໃຊ້ໄດ້ພຽງຕົວອັກສອນລາຕິນ, ຕົວເລກ, ຈຸດ, ຂີດ ແລະ ຂີດລຸ່ມ'],
+  [/password must be at least (\d+) characters/i,
+                                     'ລະຫັດຜ່ານຕ້ອງມີຢ່າງໜ້ອຍ $1 ຕົວ'],
+  [/password too long/i,             'ລະຫັດຜ່ານຍາວເກີນໄປ'],
 ];
 function tr(msg){
   if (!msg) return 'ເກີດຂໍ້ຜິດພາດທີ່ບໍ່ຮູ້ສາເຫດ';
@@ -619,15 +732,121 @@ function tr(msg){
   return msg;
 }
 
-/* ── ສະຖານະບໍລິການ ──────────────────────────────────────────── */
-fetch('/api/health').then(r => r.json()).then(d => {
-  $('dot').className = 'dot ok';
-  $('statusText').textContent = d.ffmpeg ? 'ບໍລິການພ້ອມໃຊ້ງານ' : 'ພ້ອມໃຊ້ງານ (ບໍ່ມີ ffmpeg)';
+/* ── ບັນຊີ ແລະ ສະຖານະບໍລິການ ─────────────────────────────────
+   One round trip settles both: /api/health is the only open endpoint and it
+   reports the signed-in clinician, so the gate opens or stays shut without a
+   second request. The warmup fires only afterwards -- it loads the model and
+   sits behind the login like every other compute route. */
+function showApp(user){
+  $('acctName').textContent = user.full_name || user.username;
+  $('acctUser').textContent = '@' + user.username;
+  $('acct').hidden = false;
+  $('gate').classList.remove('on');
   fetch('/api/warmup', {method:'POST'});
+}
+
+/* Closing the app is also a handover: the next person at this workstation must
+   not find the previous patient's numbers, identifier or cuff reference still
+   on screen, so the gate wipes the session's state rather than only covering
+   it up. */
+function showGate(message){
+  $('acct').hidden = true;
+  $('results').hidden = true;
+  $('empty').hidden = false;
+  $('riskCard').hidden = true;
+  lastVitals = null;
+  ['pid','calSys','calDia','calHr','rAge','inPass','upPass','upPass2'].forEach(id => $(id).value = '');
+  $('calBox').open = $('riskBox').open = false;
+  syncCalPill(); syncRiskPill();
+  clearMsg();
+  gateError(null);
+  if (message) gateError(message, $('formUp').hidden ? 'errIn' : 'errUp');
+  $('gate').classList.add('on');
+  if ($('formUp').hidden) $('inUser').focus();
+}
+
+/* A 401 mid-session means the cookie expired or the account was removed; both
+   are recoverable by signing in again, so say so instead of reporting it as a
+   failed measurement. */
+function expired(res){
+  if (res.status !== 401) return false;
+  showGate('ເຊດຊັນສິ້ນສຸດແລ້ວ — ກະລຸນາເຂົ້າສູ່ລະບົບໃໝ່');
+  return true;
+}
+
+fetch('/api/health').then(r => r.json()).then(d => {
+  $('dot').className = 'led ok';
+  $('statusText').textContent = d.ffmpeg ? 'ບໍລິການພ້ອມໃຊ້ງານ' : 'ພ້ອມໃຊ້ງານ (ບໍ່ມີ ffmpeg)';
+  if (d.user) showApp(d.user); else $('inUser').focus();
 }).catch(() => {
-  $('dot').className = 'dot err';
+  $('dot').className = 'led err';
   $('statusText').textContent = 'ຕິດຕໍ່ບໍລິການບໍ່ໄດ້';
 });
+
+/* ── ປະຕູເຂົ້າລະບົບ ──────────────────────────────────────────── */
+function gateError(text, which){
+  ['errIn','errUp'].forEach(id => { $(id).textContent = ''; $(id).className = 'err'; });
+  if (text) { const e = $(which || 'errIn'); e.textContent = text; e.className = 'err show'; }
+}
+
+function selectTab(signUp){
+  $('tabIn').setAttribute('aria-selected', String(!signUp));
+  $('tabUp').setAttribute('aria-selected', String(signUp));
+  $('formIn').hidden = signUp;
+  $('formUp').hidden = !signUp;
+  gateError(null);
+  (signUp ? $('upName') : $('inUser')).focus();
+}
+$('tabIn').onclick = () => selectTab(false);
+$('tabUp').onclick = () => selectTab(true);
+
+async function submitAuth(path, body, btn, label, errBox){
+  gateError(null);
+  btn.disabled = true;
+  btn.textContent = 'ກຳລັງດຳເນີນການ…';
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    const d = await res.json();
+    if (!res.ok) { gateError(tr(d.error) || 'ລົ້ມເຫລວ (' + res.status + ')', errBox); return; }
+    ['inPass','upPass','upPass2'].forEach(id => $(id).value = '');
+    showApp(d.user);
+  } catch (err) {
+    gateError('ຕິດຕໍ່ບໍລິການບໍ່ໄດ້ — ກວດເບິ່ງການເຊື່ອມຕໍ່', errBox);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
+$('formIn').onsubmit = e => {
+  e.preventDefault();
+  const u = $('inUser').value.trim(), pw = $('inPass').value;
+  if (!u || !pw) { gateError('ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານ', 'errIn'); return; }
+  submitAuth('/api/auth/login', {username:u, password:pw}, $('inBtn'), 'ເຂົ້າສູ່ລະບົບ', 'errIn');
+};
+
+$('formUp').onsubmit = e => {
+  e.preventDefault();
+  const u = $('upUser').value.trim(), pw = $('upPass').value;
+  // Checked here only to save a round trip; the server enforces both rules.
+  if (pw !== $('upPass2').value) {
+    gateError('ລະຫັດຜ່ານສອງຊ່ອງບໍ່ຕົງກັນ', 'errUp'); return;
+  }
+  if (pw.length < 8) { gateError('ລະຫັດຜ່ານຕ້ອງມີຢ່າງໜ້ອຍ 8 ຕົວ', 'errUp'); return; }
+  submitAuth('/api/auth/register',
+    {username:u, password:pw, full_name:$('upName').value.trim()},
+    $('upBtn'), 'ສ້າງບັນຊີ ແລະ ເຂົ້າສູ່ລະບົບ', 'errUp');
+};
+
+$('logoutBtn').onclick = async () => {
+  try { await fetch('/api/auth/logout', {method:'POST'}); } catch (err) { /* clear locally anyway */ }
+  selectTab(false);
+  showGate();
+};
 
 /* ── ການປັບທຽບ ──────────────────────────────────────────────── */
 function calValues(){
@@ -637,7 +856,7 @@ function calValues(){
 function syncCalPill(){
   const c = calValues();
   $('calPill').textContent = c ? c.s + '/' + c.d : 'ປິດ';
-  $('calPill').className = c ? 'pill' : 'pill off';
+  $('calPill').className = c ? 'tag' : 'tag off';
 }
 ['calSys','calDia','calHr'].forEach(id => $(id).oninput = syncCalPill);
 $('calClear').onclick = () => {
@@ -680,6 +899,7 @@ $('riskBtn').onclick = async () => {
   $('riskBtn').textContent = 'ກຳລັງຄຳນວນ…';
   try {
     const res = await fetch('/api/stroke-risk', {method:'POST', body:fd});
+    if (expired(res)) return;
     const d = await res.json();
     if (!res.ok) throw new Error(tr(d.error));
     renderRisk(d);
@@ -922,6 +1142,7 @@ async function send(blob, name){
   if (c) { fd.append('cal_systolic', c.s); fd.append('cal_diastolic', c.d); fd.append('cal_hr', c.hr); }
   try {
     const res = await fetch('/api/analyze', {method:'POST', body:fd});
+    if (expired(res)) return;
     const data = await res.json();
     if (!res.ok) throw new Error(tr(data.error) || ('ຄຳຮ້ອງຂໍລົ້ມເຫລວ (' + res.status + ')'));
     render(data, name);
@@ -1089,6 +1310,7 @@ $('riskBtn').onclick = async () => {
   $('riskBtn').textContent = 'ກຳລັງຄຳນວນ…';
   try {
     const res = await fetch('/api/stroke-risk', {method:'POST', body:fd});
+    if (expired(res)) return;
     const d = await res.json();
     if (!res.ok) throw new Error(tr(d.error));
     renderRisk(d);
