@@ -65,10 +65,35 @@ The capture and scoring endpoints handle patient health data, so they are not
 open to anyone who can reach the port. `GET /` and `GET /api/health` are the
 only unauthenticated routes; everything else returns `401` without a session.
 
-Registration is open — there is no invite or admin role. For a single-clinic
-prototype on a LAN that is the right trade: the alternative is bootstrapping an
-administrator account, which is one more secret to distribute and to leak. If
-this is ever exposed beyond a trusted network, close registration first.
+**Registration is open unless you close it.** With `REGISTER_CODE` unset anyone
+who reaches the URL can create an account, which is fine on a trusted LAN and
+not fine anywhere else — this service is published to the internet through a
+Cloudflare tunnel, so set it:
+
+```bash
+python3 -c 'import secrets; print(secrets.token_urlsafe(24))'
+# put the result in .llm-env as REGISTER_CODE=..., then rebuild
+```
+
+`autostart.sh` passes it into the container, and `.llm-env` is 0600 and
+gitignored, so the code never enters the image or the repository. When it is
+set, `/api/auth/register` returns `403` without a matching code and the sign-up
+tab grows a **ລະຫັດເຊີນ** field; `/api/health` advertises `invite_required` so
+the field appears only when the server actually wants it. The comparison is
+`hmac.compare_digest`, and the check runs *before* username and password
+validation so a stranger cannot use the error messages to discover which
+usernames are taken.
+
+There is still no admin role. Bootstrapping an administrator account would be
+one more secret to distribute and leak, and the invite code already does the
+one job that role would have had.
+
+Brute-forcing the code is throttled with the same counter as login, but keyed
+globally rather than per-user, because behind a tunnel or reverse proxy every
+request shares one `remote_addr` and per-IP limiting would be meaningless.
+Eight wrong codes in 15 minutes therefore pause *all* registration for that
+window — acceptable when registration is a rare event, and the reason to use a
+long random code rather than a memorable one.
 
 **What is stored.** Username, display name, a scrypt password hash, and two
 timestamps, in a SQLite file at `VITALS_DB` (`/data/vitals.db` in the
@@ -109,6 +134,7 @@ standard library, and `requirements.txt` is unchanged.
 | `SECRET_KEY` | generated once into `.flask-secret` beside the database, mode 0600 | Session cookie signing key. Changing it invalidates every session. |
 | `COOKIE_SECURE` | unset | Set to `1` behind TLS. Left off by default because a `Secure` cookie is never sent over the plain HTTP this demo runs on, which looks exactly like a login that succeeds and then does nothing. |
 | `SESSION_DAYS` | `7` | Session lifetime. |
+| `REGISTER_CODE` | unset (registration open) | Required to create an account when set. Use a long random value; see above. |
 
 There is no password reset and no admin UI. To remove an account:
 
@@ -412,8 +438,8 @@ whose frame-difference energy peaks twice per cycle, so it reads out at exactly
 
 | Endpoint | Auth | Purpose |
 |---|---|---|
-| `GET /api/health` | open | Liveness, whether ffmpeg is present, and the signed-in user (`null` if none). |
-| `POST /api/auth/register` | open | `{username, password, full_name}`. Creates the account and signs in. `409` if the username is taken. |
+| `GET /api/health` | open | Liveness, whether ffmpeg is present, whether registration needs an invite code, and the signed-in user (`null` if none). |
+| `POST /api/auth/register` | open | `{username, password, full_name, invite}`. Creates the account and signs in. `403` if `REGISTER_CODE` is set and `invite` does not match, `409` if the username is taken. |
 | `POST /api/auth/login` | open | `{username, password}`. `401` on bad credentials, `429` when throttled. |
 | `POST /api/auth/logout` | open | Clears the session. |
 | `GET /api/auth/me` | session | The signed-in clinician, or `401`. |
@@ -439,8 +465,9 @@ curl -b jar -X POST -F "video=@clip.mp4" \
 ```
 
 Errors: `400` bad request or file type, `401` no or expired session,
-`409` username taken, `413` over the 200 MB limit, `422` unusable clip
-(no face, too short), `429` login throttled, `500` inference failure.
+`403` bad invite code, `409` username taken, `413` over the 200 MB limit,
+`422` unusable clip (no face, too short), `429` login or registration
+throttled, `500` inference failure.
 
 ## What was changed from upstream
 

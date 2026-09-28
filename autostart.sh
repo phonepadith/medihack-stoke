@@ -58,6 +58,7 @@ docker run -d --name "$NAME" -p "${PORT}:8080" --restart unless-stopped \
     -e LLM_MODEL="${LLM_MODEL:-auto}" \
     -e SEALION_API_KEY="${SEALION_API_KEY:-}" \
     -e SEALION_MODEL="${SEALION_MODEL:-aisingapore/Gemma-SEA-LION-v4-27B-IT}" \
+    -e REGISTER_CODE="${REGISTER_CODE:-}" \
     "$IMAGE" >/dev/null \
     && echo "vitals-autostart: created and started container" \
     || { echo "vitals-autostart: failed to start $IMAGE" >&2; exit 1; }

@@ -64,6 +64,7 @@ def health():
     page can decide in one round trip whether to show the login screen."""
     user = auth.current_user()
     return jsonify({"status": "ok", "ffmpeg": bool(shutil.which("ffmpeg")),
+                    "invite_required": auth.registration_requires_code(),
                     "user": {"username": user["username"],
                              "full_name": user["full_name"]} if user else None})
 

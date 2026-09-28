@@ -45,6 +45,20 @@ FAIL_LIMIT = 8
 FAIL_WINDOW = 900         # seconds
 _fails: dict[str, list[float]] = {}
 
+# Registration is open when REGISTER_CODE is unset, which is right for a local
+# run and wrong for anything reachable from the internet: without it, everyone
+# who finds the URL can issue themselves an account. Set it to a long random
+# string and registration closes to whoever has been given that string.
+_INVITE_KEY = "\x00invite"   # cannot collide with a username: the regex forbids \x00
+
+
+def registration_code():
+    return os.environ.get("REGISTER_CODE", "")
+
+
+def registration_requires_code():
+    return bool(registration_code())
+
 
 # ── store ────────────────────────────────────────────────────────────────
 @contextmanager
@@ -193,6 +207,20 @@ def _public(user):
 @bp.post("/register")
 def register():
     data = _payload()
+
+    # Checked before anything else: someone without the code should not be able
+    # to probe which usernames are taken, or spend our scrypt budget, by reading
+    # the validation errors below.
+    code = registration_code()
+    if code:
+        if _throttled(_INVITE_KEY):
+            return jsonify({"error": "too many failed attempts, try again later"}), 429
+        supplied = str(data.get("invite") or "")
+        if not hmac.compare_digest(supplied.encode(), code.encode()):
+            _record_failure(_INVITE_KEY)
+            return jsonify({"error": "invalid or missing invite code"}), 403
+        _fails.pop(_INVITE_KEY, None)
+
     username = (data.get("username") or "").strip().lower()
     password = data.get("password") or ""
     full_name = data.get("full_name") or ""

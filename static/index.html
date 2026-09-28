@@ -407,6 +407,10 @@
     <form id="formUp" role="tabpanel" aria-labelledby="tabUp" hidden>
       <p class="lead">ສ້າງບັນຊີສຳລັບແພດ ຫຼື ພະນັກງານທີ່ເປັນຜູ້ວັດ. ຊື່ຜູ້ໃຊ້ຈະຖືກບັນທຶກໄວ້ກັບການວັດແຕ່ລະຄັ້ງ.</p>
       <div class="err" id="errUp" role="alert"></div>
+      <div class="f" id="inviteRow" hidden><label for="upInvite">ລະຫັດເຊີນ</label>
+        <input type="text" id="upInvite" autocomplete="off" autocapitalize="none"
+               spellcheck="false">
+        <p class="sm">ຂໍລະຫັດເຊີນຈາກຜູ້ດູແລລະບົບ</p></div>
       <div class="f"><label for="upName">ຊື່ ແລະ ນາມສະກຸນ</label>
         <input type="text" id="upName" autocomplete="name" style="font-family:var(--lao)"></div>
       <div class="f"><label for="upUser">ຊື່ຜູ້ໃຊ້</label>
@@ -692,6 +696,7 @@ const ERRORS = [
   [/password must be at least (\d+) characters/i,
                                      'ລະຫັດຜ່ານຕ້ອງມີຢ່າງໜ້ອຍ $1 ຕົວ'],
   [/password too long/i,             'ລະຫັດຜ່ານຍາວເກີນໄປ'],
+  [/invalid or missing invite code/i, 'ລະຫັດເຊີນບໍ່ຖືກຕ້ອງ — ກະລຸນາກວດຄືນ'],
 ];
 function tr(msg){
   if (!msg) return 'ເກີດຂໍ້ຜິດພາດທີ່ບໍ່ຮູ້ສາເຫດ';
@@ -725,7 +730,8 @@ function showGate(message){
   $('empty').hidden = false;
   $('riskCard').hidden = true;
   lastVitals = null;
-  ['pid','calSys','calDia','calHr','rAge','inPass','upPass','upPass2'].forEach(id => $(id).value = '');
+  ['pid','calSys','calDia','calHr','rAge','inPass','upPass','upPass2','upInvite']
+    .forEach(id => $(id).value = '');
   $('calBox').open = $('riskBox').open = false;
   syncCalPill(); syncRiskPill();
   clearMsg();
@@ -747,6 +753,9 @@ function expired(res){
 fetch('/api/health').then(r => r.json()).then(d => {
   $('dot').className = 'led ok';
   $('statusText').textContent = d.ffmpeg ? 'ບໍລິການພ້ອມໃຊ້ງານ' : 'ພ້ອມໃຊ້ງານ (ບໍ່ມີ ffmpeg)';
+  // Asking for a code the server does not want would be a dead end, so the
+  // field appears only when REGISTER_CODE is actually set on the service.
+  $('inviteRow').hidden = !d.invite_required;
   if (d.user) showApp(d.user); else $('inUser').focus();
 }).catch(() => {
   $('dot').className = 'led err';
@@ -782,7 +791,7 @@ async function submitAuth(path, body, btn, label, errBox){
     });
     const d = await res.json();
     if (!res.ok) { gateError(tr(d.error) || 'ລົ້ມເຫລວ (' + res.status + ')', errBox); return; }
-    ['inPass','upPass','upPass2'].forEach(id => $(id).value = '');
+    ['inPass','upPass','upPass2','upInvite'].forEach(id => $(id).value = '');
     showApp(d.user);
   } catch (err) {
     gateError('ຕິດຕໍ່ບໍລິການບໍ່ໄດ້ — ກວດເບິ່ງການເຊື່ອມຕໍ່', errBox);
@@ -808,7 +817,8 @@ $('formUp').onsubmit = e => {
   }
   if (pw.length < 8) { gateError('ລະຫັດຜ່ານຕ້ອງມີຢ່າງໜ້ອຍ 8 ຕົວ', 'errUp'); return; }
   submitAuth('/api/auth/register',
-    {username:u, password:pw, full_name:$('upName').value.trim()},
+    {username:u, password:pw, full_name:$('upName').value.trim(),
+     invite:$('upInvite').value.trim()},
     $('upBtn'), 'ສ້າງບັນຊີ ແລະ ເຂົ້າສູ່ລະບົບ', 'errUp');
 };
 
