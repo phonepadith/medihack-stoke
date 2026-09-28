@@ -21,8 +21,10 @@ weights, vendored from the upstream repository.
 **The paper covers heart rate and respiratory rate only.** It does not cover
 the SpO&#8322; heuristic or the blood-pressure estimator in this service —
 neither of those is backed by any published work, and the citation must not be
-read as validating them. The UI states this scope directly under the warning
-banner.
+read as validating them. The UI no longer states this: the disclosure banner
+that carried it was removed on request, so in the interface the distinction now
+rests on the amber styling of the estimated tier and its caption,
+*ປະເມີນ — ບໍ່ໄດ້ຮັບການກວດສອບ* ("estimated — not validated").
 
 > **Research demo — not a medical device.** The model is unvalidated academic
 > work. Do not use these numbers for diagnosis, triage, or any clinical

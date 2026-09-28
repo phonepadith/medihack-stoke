@@ -67,17 +67,6 @@
   .acct .out:hover{border-color:var(--alert);color:var(--alert)}
   @media(max-width:640px){.acct .nm{display:none}}
 
-  /* ══ disclosure ═════════════════════════════════════════════════════ */
-  .notice{padding:13px 28px;background:var(--caution-bg);
-    border-bottom:1px solid var(--caution-line);color:var(--caution);font-size:13px}
-  .notice .lead{display:flex;gap:10px;align-items:flex-start}
-  .notice b{color:#654109}
-  .notice .cite{display:block;margin-top:8px;padding-top:8px;
-    border-top:1px solid rgba(138,90,0,.22);font-size:12px;line-height:1.75}
-  .notice a{color:#6B4E0C;font-weight:600;text-decoration:underline;text-underline-offset:2px}
-  .notice a:hover{color:#8A6410}
-  .notice .scope{color:#94793A}
-
   /* ══ shell ══════════════════════════════════════════════════════════ */
   .shell{max-width:1420px;margin:0 auto;padding:22px 28px 56px}
   .cols{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
@@ -373,7 +362,7 @@
     color:var(--ink-3);text-align:center}
 
   @media(max-width:640px){
-    .top,.notice{padding-left:18px;padding-right:18px}
+    .top{padding-left:18px;padding-right:18px}
     .shell{padding:18px 18px 44px}
     .strip svg{height:168px}
     .strip .plate{position:static;background:none;min-width:0;padding:16px 18px 0}
@@ -454,25 +443,6 @@
     <button class="out" id="logoutBtn">ອອກຈາກລະບົບ</button>
   </div>
 </header>
-
-<div class="notice">
-  <div class="lead">
-    <span aria-hidden="true">⚠</span>
-    <div><b>ຕົວຢ່າງເພື່ອການຄົ້ນຄວ້າ — ບໍ່ແມ່ນອຸປະກອນທາງການແພດ.</b>
-    ຄ່າເຫຼົ່ານີ້ມາຈາກແບບຈຳລອງທາງວິຊາການທີ່ຍັງບໍ່ໄດ້ຮັບການກວດສອບ ແລະ
-    ຫ້າມນຳໃຊ້ເພື່ອການວິນິດໄສ, ການຄັດກອງ ຫຼື ການຕັດສິນໃຈທາງຄລີນິກໃດໆ.
-    <span class="cite">
-      ແບບຈຳລອງທີ່ໃຊ້ວັດ <b>ອັດຕາການເຕັ້ນຫົວໃຈ</b> ແລະ <b>ອັດຕາການຫາຍໃຈ</b> (MTTS-CAN) ອ້າງອີງຈາກ:
-      <a href="https://papers.nips.cc/paper/2020/file/e1228be46de6a0234ac22ded31417bc7-Paper.pdf"
-         target="_blank" rel="noopener noreferrer">Liu, Fromm, Patel &amp; McDuff,
-         “Multi-Task Temporal Shift Attention Networks for On-Device Contactless
-         Vitals Measurement”, NeurIPS 2020 ↗</a><br>
-      <span class="scope">ໝາຍເຫດ: ເອກະສານສະບັບນີ້ຄອບຄຸມສະເພາະອັດຕາການເຕັ້ນຫົວໃຈ ແລະ
-      ອັດຕາການຫາຍໃຈເທົ່ານັ້ນ — ບໍ່ໄດ້ຄອບຄຸມການປະເມີນ SpO&#8322; ແລະ ຄວາມດັນເລືອດ
-      ຂອງລະບົບນີ້, ເຊິ່ງບໍ່ໄດ້ຮັບການກວດສອບຈາກເອກະສານວິຊາການໃດໆ.</span>
-    </span></div>
-  </div>
-</div>
 <div class="shell">
 <div class="cols">
 
