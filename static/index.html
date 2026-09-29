@@ -784,17 +784,34 @@ async function submitAuth(path, body, btn, label, errBox){
   btn.disabled = true;
   btn.textContent = 'ກຳລັງດຳເນີນການ…';
   try {
-    const res = await fetch(path, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    });
-    const d = await res.json();
+    let res;
+    try {
+      res = await fetch(path, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      // The request never completed at all: offline, DNS, TLS, service down.
+      gateError('ຕິດຕໍ່ບໍລິການບໍ່ໄດ້ — ກວດເບິ່ງການເຊື່ອມຕໍ່', errBox);
+      return;
+    }
+    let d;
+    try {
+      d = await res.json();
+    } catch (err) {
+      // The service answered, but not with JSON. The usual cause is a page
+      // newer than the service behind it -- static/ updated without rebuilding
+      // the image -- so /api/auth/* does not exist and Flask's static handler
+      // replies 405 in HTML. Reporting that as a connection fault sends people
+      // off to debug a network that is working perfectly.
+      gateError('ເຊີບເວີຕອບກັບບໍ່ຖືກຕ້ອງ (HTTP ' + res.status + ') — ' +
+                'ບໍລິການອາດເປັນລຸ້ນເກົ່າ ຫຼື ກຳລັງອັບເດດ', errBox);
+      return;
+    }
     if (!res.ok) { gateError(tr(d.error) || 'ລົ້ມເຫລວ (' + res.status + ')', errBox); return; }
     ['inPass','upPass','upPass2','upInvite'].forEach(id => $(id).value = '');
     showApp(d.user);
-  } catch (err) {
-    gateError('ຕິດຕໍ່ບໍລິການບໍ່ໄດ້ — ກວດເບິ່ງການເຊື່ອມຕໍ່', errBox);
   } finally {
     btn.disabled = false;
     btn.textContent = label;
